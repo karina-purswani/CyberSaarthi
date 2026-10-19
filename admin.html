@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Cell Command Center - CyberSaarthi Intelligence</title>
+  <meta name="description" content="CyberSaarthi command dashboard for cyber-fraud incident review, evidence verification, and intelligence graph analysis.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              dark: '#060911',
+              sidebar: '#0b1120',
+              card: '#111827',
+              border: '#1e293b',
+              accent: '#06b6d4',
+              emerald: '#10b981',
+              danger: '#ef4444',
+              warning: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet.js CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    body {
+      background-color: #060911;
+      color: #f1f5f9;
+    }
+    .leaflet-container {
+      background: #090e17;
+      font-family: 'Outfit', sans-serif;
+    }
+    .custom-atm-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: white;
+      font-weight: bold;
+      font-size: 11px;
+      box-shadow: 0 0 15px currentColor;
+    }
+    .pin-pulse-high {
+      animation: pulse-red 1.5s infinite;
+    }
+    .pin-pulse-medium {
+      animation: pulse-orange 2s infinite;
+    }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+      70% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes pulse-orange {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8); }
+      70% { box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    /* Dark theme tiles adjustments */
+    .leaflet-tile {
+      filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+    }
+    .glass-header {
+      background: rgba(11, 17, 32, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col font-sans overflow-hidden selection:bg-cyan-500 selection:text-white">
+
+  <!-- Command Center Top Bar -->
+  <header class="glass-header z-30 px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4 shrink-0">
+
+    <!-- Branding & Division -->
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <span class="text-lg">👮</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            CyberSaarthi Intelligence Dashboard
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 font-mono">
+            CYBER CELL LIVE
+          </span>
+        </div>
+        <p class="text-[11px] text-gray-400">Cyber-Fraud Incident & Evidence Intelligence Dashboard</p>
+      </div>
+    </div>
+
+    <!-- Telemetry Statistics Ribbon -->
+    <div class="hidden md:flex items-center gap-4 text-xs font-mono">
+      <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-900 border border-gray-800">
+        <span class="text-gray-400">Cases Active:</span>
+        <span id="stat-active-cases" class="font-bold text-white">0</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-red-950/40 border border-red-900/60">
+        <span class="text-red-400">Total Loss Flagged:</span>
+        <span id="stat-total-loss" class="font-bold text-red-300">₹0</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-cyan-950/40 border border-cyan-900/60">
+        <span class="text-cyan-400">Golden Hour Nodes:</span>
+        <span id="stat-golden-nodes" class="font-bold text-cyan-300">0 Active</span>
+      </div>
+    </div>
+
+    <!-- Quick Controls -->
+    <div class="flex items-center gap-2.5">
+      <button onclick="toggleCorrelationModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition">
+        <span>🔗</span>
+        <span>Mule Network Correlations</span>
+      </button>
+      <button
+  onclick="toggleEvidenceWorkspace()"
+  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold transition">
+  <span>Evidence Intelligence</span>
+</button>
+
+      <a href="index.html" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 text-xs font-medium transition">
+        <span>Citizen Portal</span>
+        <span>↗</span>
+      </a>
+
+      <button onclick="loadCasesData()" class="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs" title="Refresh Live Incidents">
+        🔄
+      </button>
+    </div>
+
+  </header>
+
+  <!-- Split-Screen Command Center Body -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Left Pane: Incident Feed & Case Intelligence (400px to 460px) -->
+    <aside class="w-full md:w-[440px] lg:w-[480px] bg-cyber-sidebar border-r border-gray-800 flex flex-col shrink-0 z-20">
+
+      <!-- Incident Search & Risk Filter Bar -->
+      <div class="p-3 border-b border-gray-800 space-y-2 bg-gray-950/60">
+        <div class="relative">
+          <input type="text" id="incident-search" placeholder="Search by UTR, UPI, Phone, Case ID..." class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 font-mono" oninput="filterIncidents()">
+          <span class="absolute left-2.5 top-2 text-gray-500 text-xs">🔍</span>
+        </div>
+
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400 text-[11px] font-medium">Filter by Risk:</span>
+          <div class="flex items-center gap-1">
+            <button onclick="setFilter('ALL')" id="filter-all" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-cyan-500 text-black">ALL</button>
+            <button onclick="setFilter('HIGH')" id="filter-high" class="px-2 py-0.5 rounded text-[11px] text-gray-400 hover:text-white">CRITICAL/HIGH</button>
+            <button onclick="setFilter('MEDIUM')" id="filter-medium" class="px-2 py-0.5 rounded text-[11px] text-gray-400 hover:text-white">MEDIUM</button>
+            <button onclick="setFilter('LOW')" id="filter-low" class="px-2 py-0.5 rounded text-[11px] text-gray-400 hover:text-white">LOW</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scrollable Incident Queue -->
+      <div id="incident-list" class="flex-1 overflow-y-auto p-3 space-y-2.5 divide-y-0 divide-gray-800">
+        <!-- Dynamically injected via admin.js -->
+        <div class="p-4 text-center text-xs text-gray-500">Loading live cyber incidents...</div>
+      </div>
+
+      <!-- Selected Case Action Footer Drawer -->
+      <div id="case-action-drawer" class="p-3 bg-gray-950 border-t border-gray-800 space-y-2 hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-cyan-400" id="drawer-case-id">CS-2026-MH-8812</span>
+          <span id="drawer-freeze-status" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono">Status: Active</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-sec91-freeze" onclick="triggerSec91Freeze()" class="py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+            <span>🚨</span>
+            <span>Sec 91 Bank Freeze</span>
+          </button>
+          <a id="btn-export-fir" href="#" target="_blank" class="py-2 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-cyan-300 font-semibold text-xs border border-gray-700 flex items-center justify-center gap-1.5 transition">
+            <span>📄</span>
+            <span>Download FIR PDF</span>
+          </a>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Right Pane: Incident Map & Golden Hour Context -->
+    <main class="flex-1 relative flex flex-col overflow-hidden bg-gray-950">
+
+      <!-- Leaflet Map Container -->
+      <div id="map" class="w-full h-full"></div>
+
+      <!-- Floating Map Legend Overlay -->
+
+
+      <!-- Floating Incident Quick Detail HUD (Bottom of Map) -->
+
+
+    </main>
+
+  </div>
+
+<!-- CEVE + EIG Evidence Intelligence Workspace -->
+<div id="evidence-workspace"
+     class="fixed inset-0 z-[9999] bg-gray-950/95 backdrop-blur-sm hidden overflow-y-auto">
+
+  <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-5">
+
+    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-4">
+      <div>
+        <h2 class="text-xl font-bold text-cyan-300">
+          Evidence Intelligence
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">
+          Cross-Evidence Verification Engine (CEVE) · Evidence-to-Intelligence Graph (EIG)
+        </p>
+        <p id="ei-selected-case" class="text-xs text-gray-500 mt-2">
+          Select a case from the incident queue first.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button onclick="loadEvidenceWorkspace()"
+                class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs">
+          Refresh evidence
+        </button>
+        <button onclick="toggleEvidenceWorkspace()"
+                class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs">
+          Close
+        </button>
+      </div>
+    </header>
+
+    <!-- CEVE: Verification -->
+    <section class="rounded-xl border border-gray-800 bg-gray-900/70 p-4 space-y-4">
+      <div>
+        <h3 class="text-base font-bold text-white">Cross-Evidence Verification</h3>
+        <p class="text-xs text-gray-400 mt-1">
+          Compares submitted sources and highlights agreements, discrepancies,
+          missing information and uncertain extractions.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-lg bg-gray-950 border border-gray-800 p-3">
+          <p class="text-xs text-gray-400">Corroboration Index</p>
+          <p id="ceve-score" class="text-2xl font-bold text-cyan-300 mt-1">—</p>
+          <p id="ceve-tier" class="text-xs text-gray-400 mt-1">Awaiting case</p>
+        </div>
+
+        <div class="rounded-lg bg-gray-950 border border-gray-800 p-3">
+          <p class="text-xs text-gray-400">Evidence sources</p>
+          <p id="ceve-sources" class="text-sm font-semibold text-white mt-2">—</p>
+        </div>
+
+        <div class="rounded-lg bg-gray-950 border border-gray-800 p-3">
+          <p class="text-xs text-gray-400">Verification status</p>
+          <p id="ceve-status" class="text-sm font-semibold text-white mt-2">Awaiting case</p>
+        </div>
+      </div>
+
+      <p id="ceve-rationale" class="text-sm text-gray-300"></p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-gray-800 p-3">
+          <h4 class="text-sm font-semibold text-emerald-300">Corroborations</h4>
+          <div id="ceve-corroborations" class="mt-2 space-y-2 text-xs text-gray-300">
+            Select a case to load findings.
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-800 p-3">
+          <h4 class="text-sm font-semibold text-red-300">Discrepancies</h4>
+          <div id="ceve-discrepancies" class="mt-2 space-y-2 text-xs text-gray-300">
+            Select a case to load findings.
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-800 p-3">
+          <h4 class="text-sm font-semibold text-amber-300">Ambiguous findings</h4>
+          <div id="ceve-ambiguous" class="mt-2 space-y-2 text-xs text-gray-300">
+            Select a case to load findings.
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-800 p-3">
+          <h4 class="text-sm font-semibold text-amber-300">Missing information</h4>
+          <div id="ceve-missing" class="mt-2 space-y-2 text-xs text-gray-300">
+            Select a case to load findings.
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-800 p-3 lg:col-span-2">
+          <h4 class="text-sm font-semibold text-gray-200">Uncertain extractions</h4>
+          <div id="ceve-uncertain" class="mt-2 space-y-2 text-xs text-gray-300">
+            Select a case to load findings.
+          </div>
+        </div>
+      </div>
+
+      <p id="ceve-disclaimer"
+         class="text-xs text-gray-400 border-t border-gray-800 pt-3">
+        This index measures cross-evidence corroboration. It is not a probability
+        of fraud, proof of authenticity, or a finding of legal guilt.
+      </p>
+    </section>
+
+    <!-- EIG: Graph -->
+    <section class="rounded-xl border border-gray-800 bg-gray-900/70 p-4 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base font-bold text-white">Evidence-to-Intelligence Graph</h3>
+          <p class="text-xs text-gray-400 mt-1">
+            Reported entities, relationships and cross-case identifier matches.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button onclick="loadCaseEvidenceGraph()"
+                  class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs">
+            Selected case
+          </button>
+          <button onclick="loadGlobalEvidenceGraph()"
+                  class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs">
+            All cases
+          </button>
+        </div>
+      </div>
+
+      <div id="eig-metrics" class="flex flex-wrap gap-3 text-xs text-gray-300">
+        Graph metrics will appear here.
+      </div>
+
+      <div class="rounded-lg border border-gray-800 bg-gray-950 p-2 overflow-auto">
+        <svg id="eig-graph"
+             viewBox="0 0 900 480"
+             role="img"
+             aria-label="Evidence relationship graph"
+             class="w-full min-w-[600px] h-[420px]">
+          <text x="450" y="230" text-anchor="middle" fill="#9ca3af" font-size="14">
+            Select a case to load its evidence graph.
+          </text>
+        </svg>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-300">
+        <p><span class="text-cyan-300 font-semibold">Solid line:</span> directly reported relationship.</p>
+        <p><span class="text-amber-300 font-semibold">Dashed line:</span> inferred or analytical relationship.</p>
+      </div>
+
+      <div class="rounded-lg border border-gray-800 p-3">
+        <h4 class="text-sm font-semibold text-white">Selected node or relationship</h4>
+        <div id="eig-details" class="mt-2 text-xs text-gray-300 space-y-2">
+          Select a graph node or relationship to inspect its details.
+        </div>
+      </div>
+
+      <p id="eig-disclaimer" class="text-xs text-gray-400">
+        Graph links represent reported associations or analytical leads. They do not
+        establish ownership, guilt or criminal conspiracy.
+      </p>
+    </section>
+
+    <p id="ei-error" class="text-sm text-red-300" role="status"></p>
+  </div>
+</div>
+<!-- End CEVE + EIG Evidence Intelligence Workspace -->
+
+  <!-- Mule Network Correlation Modal -->
+  <div id="correlation-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+
+      <div class="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-950">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 text-lg">🔗</span>
+          <div>
+            <h3 class="text-sm font-bold text-white">Organized Mule Network Correlation Engine</h3>
+            <p class="text-[11px] text-gray-400">Identifies repeating phone numbers, UPI handles, and shared mule bank infrastructure</p>
+          </div>
+        </div>
+        <button onclick="toggleCorrelationModal()" class="text-gray-400 hover:text-white text-sm p-1">✕</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 text-xs">
+
+        <!-- Summary Alert Box -->
+        <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-800/60 text-amber-300 flex items-center gap-3">
+          <span class="text-xl">⚠️</span>
+          <div>
+            <p class="font-bold">Cross-Incident Syndicate Linkages Detected</p>
+            <p class="text-[11px] text-amber-200/80">Multiple victims reported the exact same scammer mobile numbers and mule UPI handles across separate jurisdictions.</p>
+          </div>
+        </div>
+
+        <!-- Repeated Scammer Phones Section -->
+        <div class="space-y-2">
+          <h4 class="font-bold text-gray-200 uppercase tracking-wider text-[11px] text-cyan-400">
+            📞 Repeated Suspect Phone Numbers (Mule Rings)
+          </h4>
+          <div id="correlations-phone-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Shared Mule UPI Handles Section -->
+        <div class="space-y-2 pt-2 border-t border-gray-800">
+          <h4 class="font-bold text-gray-200 uppercase tracking-wider text-[11px] text-emerald-400">
+            💳 Shared Destination UPI Handles
+          </h4>
+          <div id="correlations-upi-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-3 border-t border-gray-800 bg-gray-950 flex items-center justify-between">
+        <span class="text-[11px] text-gray-400">Directly exportable for NCRP & CBI Cyber Division reporting</span>
+        <button onclick="toggleCorrelationModal()" class="px-4 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-white font-semibold text-xs">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Admin JavaScript -->
+  <script src="admin.js"></script>
+</body>
+</html>

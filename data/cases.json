@@ -1,0 +1,77 @@
+[
+  {
+    "case_id": "CS-2026-NA-1554",
+    "victim_name": "Om Ingale",
+    "victim_phone": "3489473207",
+    "victim_city": "Nashik",
+    "language": "mr",
+    "timestamp": "2026-10-12T20:53:22.890262",
+    "reported_ago_mins": 60.0,
+    "location": {
+      "lat": 19.9975,
+      "lon": 73.7898,
+      "city": "Nashik"
+    },
+    "transcript": "मला",
+    "ocr_text": "",
+    "raw_text": "मला",
+    "fraud_category": "Suspected Cyber Financial Fraud",
+    "disputed_amount": 0.0,
+    "disputed_amount_str": "Not Specified",
+    "upi_ids": [],
+    "utr_numbers": [],
+    "scammer_phones": [],
+    "threat_level": "HIGH",
+    "golden_hour_active": true,
+    "golden_hour_remaining_mins": 60,
+    "cash_out_risk_score": 74.0,
+    "atm_clusters": [
+      {
+        "name": "Axis Bank Transit ATM (Nashik)",
+        "type": "Railway Hub ATM",
+        "lat": 19.99,
+        "lon": 73.798,
+        "distance_km": 1.2,
+        "risk_score": 73.7,
+        "risk_tier": "MEDIUM",
+        "time_window": "20-45 mins",
+        "recommended_action": "Secondary withdrawal perimeter; Dispatch local beat patrol"
+      },
+      {
+        "name": "HDFC 24x7 Transit Kiosk (Nashik)",
+        "type": "Metro / Transit ATM",
+        "lat": 19.9933,
+        "lon": 73.7867,
+        "distance_km": 0.57,
+        "risk_score": 73.2,
+        "risk_tier": "MEDIUM",
+        "time_window": "20-45 mins",
+        "recommended_action": "Secondary withdrawal perimeter; Dispatch local beat patrol"
+      },
+      {
+        "name": "Bank of Baroda CSP Kiosk (Nashik)",
+        "type": "CSP Kiosk (Bank Mitra)",
+        "lat": 20.0043,
+        "lon": 73.7844,
+        "distance_km": 0.94,
+        "risk_score": 73.2,
+        "risk_tier": "MEDIUM",
+        "time_window": "20-45 mins",
+        "recommended_action": "Secondary withdrawal perimeter; Dispatch local beat patrol"
+      },
+      {
+        "name": "Central Bank / SBI e-Corner (Nashik)",
+        "type": "High-Volume ATM",
+        "lat": 20.001,
+        "lon": 73.7926,
+        "distance_km": 0.49,
+        "risk_score": 72.0,
+        "risk_tier": "MEDIUM",
+        "time_window": "20-45 mins",
+        "recommended_action": "Secondary withdrawal perimeter; Dispatch local beat patrol"
+      }
+    ],
+    "status": "UNDER_INVESTIGATION",
+    "bank_frozen": false
+  }
+]
