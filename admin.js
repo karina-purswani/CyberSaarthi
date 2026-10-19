@@ -1,6 +1,6 @@
 /**
  * CyberSaarthi - Cyber Cell Dashboard Logic (admin.js)
- * Interactive Leaflet.js Mapping, Cash-Out Spatial Modeling,
+ * Interactive Leaflet.js Incident Mapping,
  * Incident Feeds, Section 91 CrPC Freeze, and Mule Network Correlation.
  */
 
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   loadCasesData();
   loadCorrelationsData();
-  
+
   // Auto refresh every 45 seconds for live police desk telemetry
   setInterval(() => {
     loadCasesData(true);
@@ -62,7 +62,7 @@ async function loadCasesData(silent = false) {
 
     const data = await response.json();
     adminState.cases = data.cases || [];
-    
+
     updateTelemetryStats();
     applyFilters();
 
@@ -191,7 +191,7 @@ function renderIncidentFeed() {
   container.innerHTML = '';
   adminState.filteredCases.forEach(c => {
     const isSelected = c.case_id === adminState.selectedCaseId;
-    
+
     // Threat badge styling
     let threatBadgeClass = "bg-gray-800 text-gray-300 border-gray-700";
     if (c.threat_level === 'CRITICAL') {
@@ -207,14 +207,14 @@ function renderIncidentFeed() {
     const card = document.createElement('div');
     card.id = `card-${c.case_id}`;
     card.className = `p-3 rounded-xl border transition cursor-pointer space-y-2 ${
-      isSelected 
-        ? 'bg-gray-900 border-cyan-500/80 shadow-md shadow-cyan-500/10' 
+      isSelected
+        ? 'bg-gray-900 border-cyan-500/80 shadow-md shadow-cyan-500/10'
         : 'bg-gray-950/60 border-gray-800 hover:border-gray-700 hover:bg-gray-900/40'
     }`;
     card.onclick = () => selectIncident(c.case_id);
 
     // Golden Hour Pill
-    const goldenPill = c.golden_hour_active 
+    const goldenPill = c.golden_hour_active
       ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 font-mono">⏱️ ${c.golden_hour_remaining_mins}m</span>`
       : `<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">Expired</span>`;
 
@@ -269,19 +269,27 @@ function selectIncident(caseId) {
   const drawer = document.getElementById('case-action-drawer');
   drawer.classList.remove('hidden');
   document.getElementById('drawer-case-id').textContent = targetCase.case_id;
-  
-  const statusEl = document.getElementById('drawer-freeze-status');
-  if (targetCase.bank_frozen) {
-    statusEl.textContent = "Status: SEC 91 FREEZE ISSUED";
-    statusEl.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono";
-    document.getElementById('btn-sec91-freeze').classList.add('opacity-50', 'pointer-events-none');
-    document.getElementById('btn-sec91-freeze').innerHTML = "<span>✓</span><span>Freeze Active</span>";
-  } else {
-    statusEl.textContent = "Status: Active Investigation";
-    statusEl.className = "text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono";
-    document.getElementById('btn-sec91-freeze').classList.remove('opacity-50', 'pointer-events-none');
-    document.getElementById('btn-sec91-freeze').innerHTML = "<span>🚨</span><span>Sec 91 Bank Freeze</span>";
-  }
+
+
+
+const statusEl = document.getElementById('drawer-freeze-status');
+const freezeButton = document.getElementById('btn-sec91-freeze');
+
+if (targetCase.demo_freeze_requested || targetCase.bank_frozen) {
+  statusEl.textContent = "Status: Demo Request Recorded";
+  statusEl.className =
+    "text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono";
+
+  freezeButton.classList.add('opacity-50', 'pointer-events-none');
+  freezeButton.innerHTML = "<span>✓</span><span>Demo Request Recorded</span>";
+} else {
+  statusEl.textContent = "Status: Active Investigation";
+  statusEl.className =
+    "text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-mono";
+
+  freezeButton.classList.remove('opacity-50', 'pointer-events-none');
+  freezeButton.innerHTML = "<span>!</span><span>Record Demo Freeze Request</span>";
+}
 
   // Update FIR Download Button in Drawer
   const firBtn = document.getElementById('btn-export-fir');
@@ -293,7 +301,7 @@ function selectIncident(caseId) {
 }
 
 // ---------------------------------------------------------------------------
-// PLOT INCIDENT & CASH-OUT ATM NODES ON LEAFLET MAP
+// PLOT INCIDENT LOCATION ON LEAFLET MAP
 // ---------------------------------------------------------------------------
 function plotCaseOnMap(c) {
   if (!adminState.map || !c.location) return;
@@ -311,7 +319,7 @@ function plotCaseOnMap(c) {
   adminState.map.flyTo([vlat, vlon], 14, { duration: 1.2 });
 
   // 2. Draw Golden Hour Transit Radius Perimeter
-  // Higher risk / shorter elapsed time = tighter, more urgent cash-out radius
+  // Context radius for the reported incident; not a cash-out prediction
   const radiusMeters = c.golden_hour_active ? 1500 : 3000;
   const circleColor = c.golden_hour_active ? '#ef4444' : '#64748b';
 
@@ -348,88 +356,6 @@ function plotCaseOnMap(c) {
     `);
   adminState.markersGroup.addLayer(victimMarker);
 
-  // 4. Plot ATM / CSP Cash-Out Clusters
-  if (c.atm_clusters && c.atm_clusters.length > 0) {
-    
-    // Update Map HUD with highest-risk node
-    const topAtm = c.atm_clusters[0];
-    updateMapHUD(topAtm);
-
-    c.atm_clusters.forEach(atm => {
-      let pinColor = '#10b981';
-      let pulseClass = '';
-
-      if (atm.risk_tier === 'HIGH') {
-        pinColor = '#ef4444';
-        pulseClass = 'pin-pulse-high';
-      } else if (atm.risk_tier === 'MEDIUM') {
-        pinColor = '#f59e0b';
-        pulseClass = 'pin-pulse-medium';
-      }
-
-      const atmIcon = L.divIcon({
-        className: 'custom-atm-pin-wrapper',
-        html: `
-          <div class="custom-atm-pin ${pulseClass}" style="background-color: ${pinColor}; width: 32px; height: 32px; border: 2px solid white;">
-            🏧
-          </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-      });
-
-      const atmMarker = L.marker([atm.lat, atm.lon], { icon: atmIcon })
-        .bindPopup(`
-          <div style="color: #0f172a; font-family: Outfit, sans-serif; font-size: 12px; min-width: 220px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <b style="font-size: 13px;">${atm.name}</b>
-              <span style="background: ${pinColor}; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px;">
-                ${atm.risk_score}% RISK
-              </span>
-            </div>
-            <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">
-              <b>Distance:</b> ${atm.distance_km} km &bull; <b>Window:</b> ${atm.time_window}
-            </div>
-            <div style="background: #f1f5f9; padding: 6px; border-radius: 6px; font-size: 11px; border-left: 3px solid ${pinColor};">
-              <b>Tactical Action:</b> ${atm.recommended_action}
-            </div>
-          </div>
-        `);
-
-      atmMarker.on('click', () => {
-        updateMapHUD(atm);
-      });
-
-      adminState.markersGroup.addLayer(atmMarker);
-    });
-
-  } else {
-    document.getElementById('map-hud-detail').classList.add('hidden');
-  }
-}
-
-function updateMapHUD(atm) {
-  const hud = document.getElementById('map-hud-detail');
-  if (!hud) return;
-
-  hud.classList.remove('hidden');
-  document.getElementById('hud-title').textContent = atm.name;
-  document.getElementById('hud-score').textContent = `Risk: ${atm.risk_score}%`;
-  document.getElementById('hud-recommendation').textContent = atm.recommended_action;
-  document.getElementById('hud-distance').textContent = `Distance: ${atm.distance_km} km`;
-  document.getElementById('hud-window').textContent = `Window: ${atm.time_window}`;
-
-  const iconEl = document.getElementById('hud-risk-icon');
-  if (atm.risk_tier === 'HIGH') {
-    iconEl.textContent = '🔴';
-    document.getElementById('hud-score').className = "font-mono text-xs font-bold text-red-400";
-  } else if (atm.risk_tier === 'MEDIUM') {
-    iconEl.textContent = '🟠';
-    document.getElementById('hud-score').className = "font-mono text-xs font-bold text-amber-400";
-  } else {
-    iconEl.textContent = '🟢';
-    document.getElementById('hud-score').className = "font-mono text-xs font-bold text-emerald-400";
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -440,7 +366,7 @@ async function triggerSec91Freeze() {
 
   const btn = document.getElementById('btn-sec91-freeze');
   btn.disabled = true;
-  btn.textContent = "Transmitting Section 91 Directive...";
+  btn.textContent = "Recording Demo Request...";
 
   try {
     const response = await fetch(`/api/cases/${adminState.selectedCaseId}/freeze`, {
@@ -450,7 +376,11 @@ async function triggerSec91Freeze() {
     if (!response.ok) throw new Error("Freeze dispatch failed");
 
     const data = await response.json();
-    alert(`🚨 STATUTORY DIRECTIVE CONFIRMED:\nSection 91 CrPC Debit Freeze Notice dispatched for Case ${adminState.selectedCaseId}.\nNodal alert transmitted to NPCI, UPI Gateway, and Beneficiary Banks.`);
+    alert(
+  `Demo action recorded for Case ${adminState.selectedCaseId}.\n\n` +
+  "No bank account was frozen.\n" +
+  "No notification was sent to NPCI, banks, UPI gateways, or law enforcement."
+);
 
     // Refresh case data
     await loadCasesData(true);
@@ -493,8 +423,8 @@ function renderCorrelationsUI() {
     adminState.correlations.linked_phones.forEach(item => {
       const card = document.createElement('div');
       card.className = "bg-gray-950 p-3 rounded-lg border border-cyan-900/40 flex items-center justify-between";
-      
-      const caseLinks = item.linked_cases.map(cid => 
+
+      const caseLinks = item.linked_cases.map(cid =>
         `<button onclick="jumpToCase('${cid}')" class="px-1.5 py-0.5 rounded bg-gray-800 text-cyan-300 font-mono text-[10px] hover:bg-gray-700 underline">${cid}</button>`
       ).join(' ');
 
@@ -523,8 +453,8 @@ function renderCorrelationsUI() {
     adminState.correlations.linked_upis.forEach(item => {
       const card = document.createElement('div');
       card.className = "bg-gray-950 p-3 rounded-lg border border-emerald-900/40 flex items-center justify-between";
-      
-      const caseLinks = item.linked_cases.map(cid => 
+
+      const caseLinks = item.linked_cases.map(cid =>
         `<button onclick="jumpToCase('${cid}')" class="px-1.5 py-0.5 rounded bg-gray-800 text-emerald-300 font-mono text-[10px] hover:bg-gray-700 underline">${cid}</button>`
       ).join(' ');
 
@@ -559,4 +489,548 @@ function toggleCorrelationModal() {
 function jumpToCase(caseId) {
   toggleCorrelationModal();
   selectIncident(caseId);
+}
+
+/* =========================================================
+   PHASE 3: EVIDENCE INTELLIGENCE WORKSPACE
+   Safe DOM rendering helpers + CEVE results
+   ========================================================= */
+
+function eiSetText(elementId, value, fallback = '—') {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  if (value === null || value === undefined || value === '') {
+    element.textContent = fallback;
+  } else {
+    element.textContent = String(value);
+  }
+}
+
+function eiFormatValue(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.map(String).join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function eiRenderFindingList(elementId, findings, emptyMessage) {
+  const container = document.getElementById(elementId);
+  if (!container) return;
+
+  container.replaceChildren();
+
+  if (!Array.isArray(findings) || findings.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'text-gray-500 italic';
+    empty.textContent = emptyMessage;
+    container.appendChild(empty);
+    return;
+  }
+
+  findings.forEach((finding) => {
+    const card = document.createElement('div');
+    card.className = 'rounded-lg border border-gray-800 bg-gray-950/70 p-3 space-y-1';
+
+    if (typeof finding !== 'object' || finding === null) {
+      card.textContent = String(finding);
+      container.appendChild(card);
+      return;
+    }
+
+    const heading = document.createElement('p');
+    heading.className = 'font-semibold text-gray-100';
+    heading.textContent = eiFormatValue(
+      finding.field || finding.type || finding.category || finding.status || 'Finding'
+    );
+    card.appendChild(heading);
+
+    const details = [
+      ['Value', finding.value ?? finding.value_str],
+      ['Details', finding.details],
+      ['Severity', finding.severity],
+      ['Sources', finding.sources ?? finding.sources_involved],
+      ['Observed in', finding.observed_in],
+      ['Not observed in', finding.unobserved_in],
+      ['Source', finding.source],
+      ['Confidence', finding.confidence_score ?? finding.confidence],
+      ['Reason', finding.reason]
+    ];
+
+    details.forEach(([label, value]) => {
+      if (value === undefined || value === null || value === '') return;
+
+      const line = document.createElement('p');
+      line.className = 'text-gray-400 whitespace-pre-wrap break-words';
+      line.textContent = `${label}: ${eiFormatValue(value)}`;
+      card.appendChild(line);
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function toggleEvidenceWorkspace() {
+  const workspace = document.getElementById('evidence-workspace');
+  if (!workspace) {
+    console.error('Evidence Intelligence workspace was not found in admin.html.');
+    return;
+  }
+
+  workspace.classList.toggle('hidden');
+
+  if (!workspace.classList.contains('hidden')) {
+    loadEvidenceWorkspace();
+  }
+}
+
+async function loadEvidenceWorkspace() {
+  const errorElement = document.getElementById('ei-error');
+  if (errorElement) errorElement.textContent = '';
+
+  const caseId = adminState.selectedCaseId;
+
+  if (!caseId) {
+    eiSetText('ei-selected-case', 'No case selected. Select a case from the incident queue first.');
+    eiSetText('ceve-score', '—');
+    eiSetText('ceve-tier', 'Awaiting case');
+    eiSetText('ceve-sources', '—');
+    eiSetText('ceve-status', 'Awaiting case');
+    eiSetText('ceve-rationale', '', '');
+    eiSetText('eig-metrics', 'Select a case to load its graph.');
+
+    [
+      'ceve-corroborations',
+      'ceve-discrepancies',
+      'ceve-ambiguous',
+      'ceve-missing',
+      'ceve-uncertain'
+    ].forEach((id) => eiRenderFindingList(id, [], 'Select a case to load findings.'));
+
+    return;
+  }
+
+  eiSetText('ei-selected-case', `Selected case: ${caseId}`);
+
+  try {
+    const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}`);
+
+    if (!response.ok) {
+      throw new Error(`Case request failed (${response.status}).`);
+    }
+
+    const result = await response.json();
+    const caseData = result.case;
+
+    if (!caseData) {
+      throw new Error('The API response did not contain case details.');
+    }
+
+    eiRenderCEVEResults(caseData.verification_report || {});
+
+    // The graph function will be added in the next step.
+    if (typeof loadCaseEvidenceGraph === 'function') {
+      await loadCaseEvidenceGraph();
+    }
+  } catch (error) {
+    console.error('Unable to load Evidence Intelligence:', error);
+
+    if (errorElement) {
+      errorElement.textContent =
+        `Could not load evidence for case ${caseId}: ${error.message}`;
+    }
+  }
+}
+
+function eiRenderCEVEResults(report) {
+  const assessment = report.confidence_assessment || {};
+  const sourcesSummary = report.sources_summary || {};
+
+  eiSetText('ceve-score', assessment.score);
+  eiSetText('ceve-tier', assessment.tier, 'Not available');
+  eiSetText('ceve-status', report.status, 'Not available');
+  eiSetText('ceve-rationale', assessment.rationale, 'No verification rationale available.');
+
+  const availableSources = Array.isArray(report.available_sources)
+    ? report.available_sources
+    : Object.keys(sourcesSummary).filter(
+        (source) => sourcesSummary[source]?.has_content
+      );
+
+  eiSetText(
+    'ceve-sources',
+    availableSources.length ? availableSources.join(', ') : '',
+    'No source data'
+  );
+
+  eiRenderFindingList(
+    'ceve-corroborations',
+    report.corroborations,
+    'No corroborations reported.'
+  );
+
+  eiRenderFindingList(
+    'ceve-discrepancies',
+    report.discrepancies,
+    'No discrepancies reported.'
+  );
+
+  eiRenderFindingList(
+    'ceve-ambiguous',
+    report.ambiguous_findings,
+    'No ambiguous findings reported.'
+  );
+
+  eiRenderFindingList(
+    'ceve-missing',
+    report.missing_information,
+    'No missing-information findings reported.'
+  );
+
+  eiRenderFindingList(
+    'ceve-uncertain',
+    report.uncertain_extractions,
+    'No uncertain extractions reported.'
+  );
+
+  eiSetText(
+    'ceve-disclaimer',
+    assessment.disclaimer ||
+      'This index measures cross-evidence corroboration. It is not a probability of fraud, proof of authenticity, or a finding of legal guilt.'
+  );
+}
+
+/* =========================================================
+   PHASE 3: EIG GRAPH RENDERING
+   Dependency-free SVG graph with safe text rendering
+   ========================================================= */
+
+const EI_SVG_NS = 'http://www.w3.org/2000/svg';
+
+async function loadCaseEvidenceGraph() {
+  const caseId = adminState.selectedCaseId;
+
+  if (!caseId) {
+    eiSetText('eig-metrics', 'Select a case first.');
+    return;
+  }
+
+  await eiFetchAndRenderGraph(
+    `/api/cases/${encodeURIComponent(caseId)}/graph`
+  );
+}
+
+async function loadGlobalEvidenceGraph() {
+  await eiFetchAndRenderGraph('/api/intelligence-graph');
+}
+
+async function eiFetchAndRenderGraph(url) {
+  const errorElement = document.getElementById('ei-error');
+  if (errorElement) errorElement.textContent = '';
+
+  eiSetText('eig-metrics', 'Loading graph...');
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Graph request failed (${response.status}).`);
+    }
+
+    const result = await response.json();
+
+    if (result.status && result.status !== 'success') {
+      throw new Error('The graph API did not report success.');
+    }
+
+    if (!result.graph || !Array.isArray(result.graph.nodes) ||
+        !Array.isArray(result.graph.edges)) {
+      throw new Error('The API returned an unexpected graph structure.');
+    }
+
+    eiRenderEvidenceGraph(result.graph);
+  } catch (error) {
+    console.error('Unable to load evidence graph:', error);
+
+    eiSetText('eig-metrics', 'Graph unavailable.');
+
+    if (errorElement) {
+      errorElement.textContent = `Could not load graph: ${error.message}`;
+    }
+  }
+}
+
+function eiCreateSvgElement(tag, attributes = {}) {
+  const element = document.createElementNS(EI_SVG_NS, tag);
+
+  Object.entries(attributes).forEach(([name, value]) => {
+    element.setAttribute(name, String(value));
+  });
+
+  return element;
+}
+
+function eiShowGraphDetails(title, values) {
+  const container = document.getElementById('eig-details');
+  if (!container) return;
+
+  container.replaceChildren();
+
+  const heading = document.createElement('p');
+  heading.className = 'font-semibold text-cyan-300';
+  heading.textContent = title;
+  container.appendChild(heading);
+
+  Object.entries(values).forEach(([label, value]) => {
+    if (value === undefined || value === null || value === '') return;
+
+    const line = document.createElement('p');
+    line.className = 'text-gray-300 whitespace-pre-wrap break-words';
+    line.textContent = `${label}: ${eiFormatValue(value)}`;
+    container.appendChild(line);
+  });
+}
+
+function eiInspectNode(node) {
+  const provenance = node.provenance || {};
+
+  eiShowGraphDetails(node.label || node.id || 'Graph node', {
+    'Entity type': node.entity_type,
+    'Role': node.role,
+    'Node ID': node.id,
+    'Inferred': node.is_inferred,
+    'Case ID': provenance.case_id,
+    'Source artifact': provenance.source_artifact,
+    'Evidence excerpt': provenance.evidence_excerpt,
+    'Confidence': provenance.confidence,
+    'Timestamp': provenance.timestamp,
+    'Properties': node.properties
+  });
+}
+
+function eiInspectEdge(edge) {
+  const provenance = edge.provenance || {};
+
+  eiShowGraphDetails(edge.relationship_type || 'Graph relationship', {
+    'Relationship ID': edge.id,
+    'From node': edge.source,
+    'To node': edge.target,
+    'Details': edge.details,
+    'Inferred': edge.is_inferred,
+    'Confidence': edge.confidence,
+    'Source artifact': provenance.source_artifact,
+    'Case ID': provenance.case_id,
+    'Evidence excerpt': provenance.evidence_excerpt,
+    'Cases linked': provenance.cases_linked,
+    'Timestamp': provenance.timestamp
+  });
+}
+
+function eiRenderEvidenceGraph(graph) {
+  const svg = document.getElementById('eig-graph');
+  if (!svg) return;
+
+  // Clear the previous drawing without interpreting API data as HTML.
+  svg.replaceChildren();
+
+  const allNodes = graph.nodes || [];
+  const allEdges = graph.edges || [];
+  const metrics = graph.metrics || {};
+
+  const maxVisibleNodes = 20;
+  const maxVisibleEdges = 35;
+
+  const nodes = allNodes.slice(0, maxVisibleNodes);
+  const visibleIds = new Set(nodes.map(node => node.id));
+
+  const edges = allEdges
+    .filter(edge => visibleIds.has(edge.source) &&
+                    visibleIds.has(edge.target))
+    .slice(0, maxVisibleEdges);
+
+  const metricParts = [
+    `Nodes: ${metrics.total_nodes ?? allNodes.length}`,
+    `Connections: ${metrics.total_edges ?? allEdges.length}`,
+    `Direct relationships: ${metrics.direct_fact_edges ?? '—'}`,
+    `Inferred relationships: ${metrics.inferred_edges ?? '—'}`
+  ];
+
+  if (metrics.shared_entities_count !== undefined) {
+    metricParts.push(`Shared entities: ${metrics.shared_entities_count}`);
+  }
+
+  if (metrics.syndicate_clusters_count !== undefined) {
+    metricParts.push(`Linked clusters: ${metrics.syndicate_clusters_count}`);
+  }
+
+  eiSetText('eig-metrics', metricParts.join(' · '));
+
+  eiSetText(
+    'eig-disclaimer',
+    graph.disclaimer ||
+      'Graph links represent reported associations or analytical leads. They do not establish ownership, guilt or criminal conspiracy.'
+  );
+
+  if (nodes.length === 0) {
+    const message = eiCreateSvgElement('text', {
+      x: 450,
+      y: 240,
+      'text-anchor': 'middle',
+      fill: '#9ca3af',
+      'font-size': 15
+    });
+
+    message.textContent = 'No graph nodes available for this view.';
+    svg.appendChild(message);
+
+    eiShowGraphDetails('Graph information', {
+      'Total nodes': allNodes.length,
+      'Total connections': allEdges.length
+    });
+    return;
+  }
+
+  if (allNodes.length > maxVisibleNodes ||
+      allEdges.length > edges.length) {
+    const note = eiCreateSvgElement('text', {
+      x: 450,
+      y: 18,
+      'text-anchor': 'middle',
+      fill: '#fbbf24',
+      'font-size': 11
+    });
+
+    note.textContent =
+      `Preview: ${nodes.length} of ${allNodes.length} nodes; ${edges.length} of ${allEdges.length} connections.`;
+    svg.appendChild(note);
+  }
+
+  // Arrange nodes in a five-column grid.
+  const positions = new Map();
+
+  nodes.forEach((node, index) => {
+    const column = index % 5;
+    const row = Math.floor(index / 5);
+
+    positions.set(node.id, {
+      x: 85 + column * 180,
+      y: 65 + row * 115
+    });
+  });
+
+  // Draw connections before nodes so the lines stay behind the circles.
+  edges.forEach(edge => {
+    const start = positions.get(edge.source);
+    const end = positions.get(edge.target);
+
+    if (!start || !end) return;
+
+    const inferred = Boolean(edge.is_inferred);
+
+    const line = eiCreateSvgElement('line', {
+      x1: start.x,
+      y1: start.y,
+      x2: end.x,
+      y2: end.y,
+      stroke: inferred ? '#fbbf24' : '#22d3ee',
+      'stroke-width': 1.8,
+      'stroke-opacity': 0.8,
+      'stroke-dasharray': inferred ? '6 5' : 'none',
+      cursor: 'pointer',
+      'pointer-events': 'stroke'
+    });
+
+    line.addEventListener('click', () => eiInspectEdge(edge));
+
+    const lineTitle = eiCreateSvgElement('title');
+    lineTitle.textContent =
+      `${edge.relationship_type || 'Relationship'}: ${edge.source} → ${edge.target}`;
+    line.appendChild(lineTitle);
+
+    svg.appendChild(line);
+  });
+
+  // Draw and label the entity nodes.
+  nodes.forEach(node => {
+    const position = positions.get(node.id);
+    const inferred = Boolean(node.is_inferred);
+
+    const type = String(node.entity_type || '').toUpperCase();
+
+    let fill = '#164e63';
+
+    if (type.includes('CASE')) fill = '#1e40af';
+    else if (type.includes('PHONE')) fill = '#065f46';
+    else if (type.includes('UPI')) fill = '#713f12';
+    else if (type.includes('URL')) fill = '#6b21a8';
+    else if (type.includes('UTR')) fill = '#9f1239';
+    else if (type.includes('VICTIM')) fill = '#155e75';
+
+    const group = eiCreateSvgElement('g', {
+      cursor: 'pointer',
+      tabindex: 0,
+      role: 'button',
+      'aria-label': `Inspect ${node.label || node.id || 'entity'}`
+    });
+
+    const circle = eiCreateSvgElement('circle', {
+      cx: position.x,
+      cy: position.y,
+      r: 23,
+      fill,
+      stroke: inferred ? '#fbbf24' : '#67e8f9',
+      'stroke-width': 2,
+      'stroke-dasharray': inferred ? '4 3' : 'none'
+    });
+
+    group.appendChild(circle);
+
+    const rawLabel = String(node.label || node.id || 'Entity');
+    const shortLabel = rawLabel.length > 16
+      ? `${rawLabel.slice(0, 13)}...`
+      : rawLabel;
+
+    const label = eiCreateSvgElement('text', {
+      x: position.x,
+      y: position.y + 37,
+      'text-anchor': 'middle',
+      fill: '#e5e7eb',
+      'font-size': 10
+    });
+
+    label.textContent = shortLabel;
+    group.appendChild(label);
+
+    const title = eiCreateSvgElement('title');
+    title.textContent = `${rawLabel} (${node.entity_type || 'Unknown type'})`;
+    group.appendChild(title);
+
+    group.addEventListener('click', () => eiInspectNode(node));
+
+    group.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        eiInspectNode(node);
+      }
+    });
+
+    svg.appendChild(group);
+  });
+
+  if (allNodes.length > maxVisibleNodes ||
+      allEdges.length > edges.length) {
+    eiShowGraphDetails('Graph preview', {
+      'Visible nodes': nodes.length,
+      'Total nodes': allNodes.length,
+      'Visible connections': edges.length,
+      'Total connections': allEdges.length,
+      'Note': 'The preview is limited for readability. The API data remains unchanged.'
+    });
+  } else {
+    eiShowGraphDetails('Graph loaded', {
+      'Nodes displayed': nodes.length,
+      'Connections displayed': edges.length,
+      'Tip': 'Click a node or line to inspect its details and provenance.'
+    });
+  }
 }

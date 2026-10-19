@@ -1,10 +1,10 @@
 """
-CyberSaarthi - Vernacular Cyber-Fraud Intelligence & Cash-Out Prediction System
+CyberSaarthi - Vernacular Cyber-Fraud Intelligence & Evidence Verification System
 Real production-grade FastAPI Backend Server:
 - Real OCR via RapidOCR (ONNX/PaddleOCR engine)
 - Real Speech-to-Text via SpeechRecognition (Marathi, Hindi, English)
 - Real Regex & Heuristic Forensic Extraction
-- Dynamic Spatial Heuristic ATM Cash-Out Prediction
+- Golden Hour Timing and Evidence Intelligence
 - Real Case Persistence in data/cases.json (Zero hardcoded dummy data)
 - Dynamic Mule Syndicate Cross-Correlation
 - Statutory NCRP / Section 91 CrPC FIR PDF Generator via ReportLab
@@ -19,7 +19,7 @@ import math
 import uuid
 import shutil
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 # Ensure UTF-8 output encoding on Windows consoles
 if hasattr(sys.stdout, 'reconfigure'):
@@ -59,6 +59,12 @@ try:
 except Exception:
     pass
 
+# Cross-Evidence Verification Engine (CEVE)
+from verification_engine import verify_cross_evidence, extract_source_forensic_entities
+
+# Evidence-to-Intelligence Graph (EIG)
+from intelligence_graph import build_case_subgraph, build_multi_case_intelligence_graph
+
 # ReportLab Imports for Statutory Complaint PDF Generation
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
@@ -67,7 +73,7 @@ from reportlab.lib import colors
 
 app = FastAPI(
     title="CyberSaarthi API",
-    description="Vernacular Cyber-Fraud Intelligence & Cash-Out Prediction System",
+    description="Vernacular Cyber-Fraud Intelligence & Evidence Verification System",
     version="2.0.0"
 )
 
@@ -98,7 +104,18 @@ def load_cases() -> List[Dict[str, Any]]:
     if os.path.exists(CASES_FILE):
         try:
             with open(CASES_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                cases = json.load(f)
+                # Ensure backward compatibility for any existing cases lacking verification_report or intelligence_graph
+                for c in cases:
+                    if "verification_report" not in c:
+                        c["verification_report"] = verify_cross_evidence(
+                            voice_text=c.get("transcript", ""),
+                            ocr_text=c.get("ocr_text", ""),
+                            user_text=c.get("raw_text", "")
+                        )
+                    if "intelligence_graph" not in c:
+                        c["intelligence_graph"] = build_case_subgraph(c)
+                return cases
         except Exception as e:
             print(f"[CyberSaarthi] Error loading cases.json: {e}")
     return []
@@ -143,32 +160,46 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 # ---------------------------------------------------------------------------
 # REAL OCR PIPELINE (Extracts actual text from uploaded screenshots)
 # ---------------------------------------------------------------------------
-def perform_real_ocr(image_path: str) -> str:
+def perform_real_ocr_detailed(image_path: str) -> Tuple[str, Dict[str, Any]]:
     """
     Extract real text from payment slips and chat screenshots using RapidOCR.
-    Returns empty string if no text is found. Never returns dummy text.
+    Returns (joined_text, metadata_dict) where metadata tracks low-confidence tokens.
     """
     if not OCR_AVAILABLE or rapid_ocr is None:
-        return ""
+        return "", {"low_confidence_tokens": []}
 
     try:
         results, _ = rapid_ocr(image_path)
         if not results:
-            return ""
+            return "", {"low_confidence_tokens": []}
 
         extracted_lines = []
+        low_confidence_tokens = []
         for item in results:
             text = item[1].strip()
             confidence = float(item[2])
             if text and confidence >= 0.45:
                 extracted_lines.append(text)
+            if text and confidence < 0.65:
+                low_confidence_tokens.append({
+                    "text": text,
+                    "confidence": round(confidence, 3)
+                })
 
         joined_text = "\n".join(extracted_lines)
         print(f"[CyberSaarthi OCR] Extracted {len(extracted_lines)} real text lines from {os.path.basename(image_path)}")
-        return joined_text
+        return joined_text, {"low_confidence_tokens": low_confidence_tokens}
     except Exception as e:
         print(f"[CyberSaarthi OCR] OCR processing error: {e}")
-        return ""
+        return "", {"low_confidence_tokens": []}
+
+def perform_real_ocr(image_path: str) -> str:
+    """
+    Extract real text from payment slips and chat screenshots using RapidOCR.
+    Returns empty string if no text is found. Never returns dummy text.
+    """
+    text, _ = perform_real_ocr_detailed(image_path)
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +286,8 @@ def extract_forensic_entities(raw_text: str) -> Dict[str, Any]:
     # 1. Disputed Amounts
     amount_matches = []
     amt_regexes = [
+        r"([\d,]+(?:\.\d{1,2})?)\s*(?:was\s+)?(?:deducted|debited|transferred|paid|lost)\b",
+        r"\b(?:deducted|debited|transferred|paid|loss of)\s*(?:of\s*)?([\d,]+(?:\.\d{1,2})?)",
         r"(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)",
         r"([\d,]+(?:\.\d{1,2})?)\s*(?:rupees|rs\.?|inr|/-|रुपये|रुपया)",
         r"(?:रुपये|रुपया)\s*([\d,]+(?:\.\d{1,2})?)"
@@ -270,7 +303,7 @@ def extract_forensic_entities(raw_text: str) -> Dict[str, Any]:
                 pass
 
     disputed_amount = max(amount_matches) if amount_matches else 0.0
-    disputed_amount_str = f"₹{int(disputed_amount):,}" if disputed_amount > 0 else "Not Specified"
+    disputed_amount_str = f"INR {int(disputed_amount):,}" if disputed_amount > 0 else "Not Specified"
 
     # 2. UPI IDs
     # Exclude common email provider domains to avoid false positives
@@ -343,97 +376,27 @@ def extract_forensic_entities(raw_text: str) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# SPATIAL CASH-OUT PREDICTION ENGINE
+# GOLDEN HOUR TIMING
 # ---------------------------------------------------------------------------
-def predict_cash_out_risk(
-    victim_lat: float,
-    victim_lon: float,
-    elapsed_minutes: float,
-    disputed_amount: float,
-    victim_city: str = "Pune"
-) -> Dict[str, Any]:
-    """
-    Calculate ATM/CSP cash-out risk vectors based on real elapsed time
-    and actual victim coordinates.
-    """
-    GOLDEN_HOUR_LIMIT = 120.0
-    is_golden_hour_active = elapsed_minutes < GOLDEN_HOUR_LIMIT
-    remaining_mins = max(0, int(GOLDEN_HOUR_LIMIT - elapsed_minutes))
+def calculate_incident_timing(elapsed_minutes: float) -> Dict[str, Any]:
+    """Calculate elapsed-time urgency only; this does not predict cash-out activity."""
+    elapsed = max(0.0, float(elapsed_minutes or 0.0))
+    remaining = max(0, int(120 - elapsed))
+    active = elapsed < 120
 
-    # Real time decay curve
-    if elapsed_minutes <= 15:
-        base_risk = 95.0
-    elif elapsed_minutes <= 30:
-        base_risk = 88.0
-    elif elapsed_minutes <= 60:
-        base_risk = 74.0
-    elif elapsed_minutes <= 90:
-        base_risk = 58.0
-    elif elapsed_minutes <= 120:
-        base_risk = 42.0
+    if elapsed <= 15:
+        urgency = "CRITICAL"
+    elif elapsed <= 30:
+        urgency = "HIGH"
+    elif elapsed < 120:
+        urgency = "MEDIUM"
     else:
-        base_risk = 18.0
-
-    if disputed_amount >= 50000:
-        base_risk = min(99.0, base_risk + 4.0)
-
-    if base_risk >= 80 and is_golden_hour_active:
-        threat_level = "CRITICAL"
-    elif base_risk >= 60 and is_golden_hour_active:
-        threat_level = "HIGH"
-    elif is_golden_hour_active:
-        threat_level = "MEDIUM"
-    else:
-        threat_level = "LOW"
-
-    # Dynamic spatial cluster nodes around the given coordinates
-    offsets = [
-        {"dlat": 0.0035, "dlon": 0.0028, "type": "High-Volume ATM", "prefix": "Central Bank / SBI e-Corner"},
-        {"dlat": -0.0042, "dlon": -0.0031, "type": "Metro / Transit ATM", "prefix": "HDFC 24x7 Transit Kiosk"},
-        {"dlat": 0.0068, "dlon": -0.0054, "type": "CSP Kiosk (Bank Mitra)", "prefix": "Bank of Baroda CSP Kiosk"},
-        {"dlat": -0.0075, "dlon": 0.0082, "type": "Railway Hub ATM", "prefix": "Axis Bank Transit ATM"}
-    ]
-
-    atm_clusters = []
-    for idx, offset in enumerate(offsets):
-        clat = victim_lat + offset["dlat"]
-        clon = victim_lon + offset["dlon"]
-        dist_km = round(haversine_distance(victim_lat, victim_lon, clat, clon), 2)
-        node_risk = round(max(15.0, min(99.0, base_risk - (dist_km * 4.0) + (idx * 1.5))), 1)
-
-        if node_risk >= 75:
-            tier = "HIGH"
-            window = "0-20 mins"
-            action = "CRITICAL: Imminent cash-out hotspot; Alert Bank Nodal Officer & Issue Section 91 CrPC freeze"
-        elif node_risk >= 50:
-            tier = "MEDIUM"
-            window = "20-45 mins"
-            action = "Secondary withdrawal perimeter; Dispatch local beat patrol"
-        else:
-            tier = "LOW"
-            window = "45-90 mins"
-            action = "Flagged surveillance node; preserve CCTV footage"
-
-        atm_clusters.append({
-            "name": f"{offset['prefix']} ({victim_city})",
-            "type": offset["type"],
-            "lat": round(clat, 5),
-            "lon": round(clon, 5),
-            "distance_km": dist_km,
-            "risk_score": node_risk,
-            "risk_tier": tier,
-            "time_window": window,
-            "recommended_action": action
-        })
-
-    atm_clusters.sort(key=lambda x: x["risk_score"], reverse=True)
+        urgency = "LOW"
 
     return {
-        "golden_hour_active": is_golden_hour_active,
-        "golden_hour_remaining_mins": remaining_mins,
-        "cash_out_risk_score": round(base_risk, 1),
-        "threat_level": threat_level,
-        "atm_clusters": atm_clusters
+        "golden_hour_active": active,
+        "golden_hour_remaining_mins": remaining,
+        "threat_level": urgency
     }
 
 
@@ -509,9 +472,9 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
     story = []
 
     # Header
-    story.append(Paragraph("CYBERSAARTHI | सायबरसारथी", title_style))
-    story.append(Paragraph("VERNACULAR CYBER-FRAUD INTELLIGENCE & CASH-OUT PREDICTION SYSTEM", subtitle_style))
-    story.append(Paragraph("STATUTORY COMPLAINT DOSSIER & LAW ENFORCEMENT DISPATCH DRAFT", ParagraphStyle("Sub2", parent=subtitle_style, fontSize=8, textColor=colors.HexColor("#64748b"))))
+    story.append(Paragraph("CYBERSAARTHI | CYBER FRAUD REPORT", title_style))
+    story.append(Paragraph("VERNACULAR CYBER-FRAUD INTELLIGENCE & EVIDENCE VERIFICATION SYSTEM", subtitle_style))
+    story.append(Paragraph("CYBER FRAUD COMPLAINT & EVIDENCE REVIEW DRAFT", ParagraphStyle("Sub2", parent=subtitle_style, fontSize=8, textColor=colors.HexColor("#64748b"))))
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0284c7"), spaceAfter=10))
 
@@ -527,7 +490,7 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
         ],
         [
             Paragraph(f"<b>Jurisdiction:</b> {case.get('location', {}).get('city', 'Cyber Cell Zone')}", normal_text),
-            Paragraph(f"<b>Statutory Provision:</b> IT Act Sec 66D, IPC 420 / BNSS Sec 94", normal_text)
+            Paragraph("<b>Legal Review:</b> Potentially applicable provisions require review by the competent authority.", normal_text)
         ]
     ]
     meta_table = Table(meta_data, colWidths=[260, 260])
@@ -561,8 +524,9 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
 
     # Forensic Evidence
     story.append(Paragraph("2. FORENSIC TRANSACTION EVIDENCE (NCRP COMPATIBLE)", section_heading))
+    amount_for_pdf = str(case.get("disputed_amount_str", "Not Specified")).replace("\u20b9", "INR ")
     forensic_data = [
-        [Paragraph("<b>Disputed Amount:</b>", normal_text), Paragraph(f"<b><font color='#b91c1c'>{case.get('disputed_amount_str', 'Not Specified')}</font></b>", normal_text)],
+        [Paragraph("<b>Disputed Amount:</b>", normal_text), Paragraph(f"<b><font color='#b91c1c'>{amount_for_pdf}</font></b>", normal_text)],
         [Paragraph("<b>Fraud Category:</b>", normal_text), Paragraph(case.get("fraud_category", "Cyber Financial Fraud"), normal_text)],
         [Paragraph("<b>Beneficiary / Mule UPI:</b>", normal_text), Paragraph(", ".join(case.get("upi_ids", [])) or "None detected in evidence", code_text)],
         [Paragraph("<b>Bank UTR / Txn Ref:</b>", normal_text), Paragraph(", ".join(case.get("utr_numbers", [])) or "None detected in evidence", code_text)],
@@ -580,7 +544,7 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
 
     # Statement
     story.append(Paragraph("3. CITIZEN STATEMENT / TRANSCRIPT", section_heading))
-    statement_text = case.get("transcript", "No narrative statement provided.")
+    statement_text = str(case.get("transcript", "No narrative statement provided.")).replace(chr(0x20b9), "INR ")
     statement_para = Paragraph(f"<i>\"{statement_text}\"</i>", normal_text)
     statement_table = Table([[statement_para]], colWidths=[520])
     statement_table.setStyle(TableStyle([
@@ -594,42 +558,12 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
     story.append(statement_table)
     story.append(Spacer(1, 10))
 
-    # Cash-Out ATM Vectors
-    story.append(Paragraph("4. CASH-OUT PREDICTION & ATM INTERCEPTION VECTORS", section_heading))
-    atm_header = [
-        Paragraph("<b>Target ATM / CSP Kiosk</b>", normal_text),
-        Paragraph("<b>Dist (km)</b>", normal_text),
-        Paragraph("<b>Risk Score</b>", normal_text),
-        Paragraph("<b>Cash-Out Window</b>", normal_text),
-        Paragraph("<b>Tactical Recommendation</b>", normal_text)
-    ]
-    atm_rows = [atm_header]
-    for atm in case.get("atm_clusters", [])[:3]:
-        tier_color = "#dc2626" if atm["risk_tier"] == "HIGH" else "#d97706"
-        atm_rows.append([
-            Paragraph(atm["name"], normal_text),
-            Paragraph(str(atm["distance_km"]), normal_text),
-            Paragraph(f"<font color='{tier_color}'><b>{atm['risk_score']}%</b></font>", normal_text),
-            Paragraph(atm["time_window"], normal_text),
-            Paragraph(atm["recommended_action"], normal_text)
-        ])
-    atm_table = Table(atm_rows, colWidths=[140, 50, 60, 80, 190])
-    atm_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0f172a")),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ('TOPPADDING', (0,0), (-1,-1), 4),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-    ]))
-    story.append(atm_table)
-    story.append(Spacer(1, 10))
-
     # Bank Freeze Directive
     freeze_directive = Paragraph(
-        "<b>URGENT POLICE / BANK ACTION DIRECTIVE (UNDER SECTION 91 CrPC / SEC 94 BNSS):</b><br/>"
-        "1. Immediate marking of debit freeze on beneficiary UPI IDs and associated bank accounts.<br/>"
-        "2. Interception request issued to the nearest beat patrol marshall for high-risk ATM clusters listed above.<br/>"
-        "3. Preserve IP logs, device IMEI, and CCTV footage from the withdrawal terminal window.",
+        "<b>RECOMMENDED FOLLOW-UP FOR AUTHORIZED INVESTIGATORS:</b><br/>"
+        "1. Submit identified UPI IDs, transaction references, and supporting evidence to the relevant bank or cybercrime authority for review.<br/>"
+        "2. Any account restriction or freeze requires action by the authorized institution or authority; this report does not execute a freeze.<br/>"
+        "3. Preserve relevant transaction records, available IP logs, device details, and CCTV footage where applicable.",
         normal_text
     )
     directive_table = Table([[freeze_directive]], colWidths=[520])
@@ -645,7 +579,7 @@ def generate_statutory_fir_pdf(case: Dict[str, Any]) -> str:
     story.append(Spacer(1, 12))
 
     footer_text = Paragraph(
-        "Generated digitally via CyberSaarthi Intelligence System • Certified evidence record for NCRP / 1930 / FIR Registration",
+"Generated digitally by CyberSaarthi | Draft complaint report for review; not a certified forensic record.",
         ParagraphStyle("Footer", parent=normal_text, fontSize=7, textColor=colors.HexColor("#64748b"), alignment=1)
     )
     story.append(footer_text)
@@ -688,12 +622,13 @@ async def analyze_case(
 
     # 2. Process Real Screenshot OCR
     ocr_extracted_text = ""
+    ocr_metadata = {"low_confidence_tokens": []}
     if image_file and image_file.filename:
         img_name = f"{case_id}_{image_file.filename}"
         saved_image_path = os.path.join(UPLOADS_DIR, img_name)
         with open(saved_image_path, "wb") as buffer:
             shutil.copyfileobj(image_file.file, buffer)
-        ocr_extracted_text = perform_real_ocr(saved_image_path)
+        ocr_extracted_text, ocr_metadata = perform_real_ocr_detailed(saved_image_path)
 
     # 3. Combine user input
     combined_raw_text = f"{incident_text.strip()}\n{transcribed_text}\n{ocr_extracted_text}".strip()
@@ -705,8 +640,14 @@ async def analyze_case(
             detail="No incident evidence provided. Please record your voice, upload a screenshot, or type the incident details."
         )
 
-    # 4. Extract Real Entities
-    extracted_entities = extract_forensic_entities(combined_raw_text)
+    # 4. Cross-Evidence Verification Engine (CEVE)
+    verification_report = verify_cross_evidence(
+        voice_text=transcribed_text,
+        ocr_text=ocr_extracted_text,
+        user_text=incident_text.strip(),
+        ocr_metadata=ocr_metadata
+    )
+    extracted_entities = verification_report["consolidated_entities"]
 
     # 5. Geolocation
     if latitude is not None and longitude is not None:
@@ -718,13 +659,9 @@ async def analyze_case(
         target_lat = hub["lat"]
         target_lon = hub["lon"]
 
-    # 6. Spatial Cash-Out Risk Prediction
-    spatial_prediction = predict_cash_out_risk(
-        victim_lat=target_lat,
-        victim_lon=target_lon,
-        elapsed_minutes=float(reported_mins_ago or 15.0),
-        disputed_amount=extracted_entities["disputed_amount"],
-        victim_city=victim_city
+    # 6. Golden Hour timing only (no cash-out prediction)
+    incident_timing = calculate_incident_timing(
+        float(reported_mins_ago or 15.0)
     )
 
     statement_summary = incident_text.strip() or transcribed_text or (
@@ -754,14 +691,16 @@ async def analyze_case(
         "upi_ids": extracted_entities["upi_ids"],
         "utr_numbers": extracted_entities["utr_numbers"],
         "scammer_phones": extracted_entities["scammer_phones"],
-        "threat_level": spatial_prediction["threat_level"],
-        "golden_hour_active": spatial_prediction["golden_hour_active"],
-        "golden_hour_remaining_mins": spatial_prediction["golden_hour_remaining_mins"],
-        "cash_out_risk_score": spatial_prediction["cash_out_risk_score"],
-        "atm_clusters": spatial_prediction["atm_clusters"],
+        "threat_level": incident_timing["threat_level"],
+        "golden_hour_active": incident_timing["golden_hour_active"],
+        "golden_hour_remaining_mins": incident_timing["golden_hour_remaining_mins"],
+        "verification_report": verification_report,
         "status": "UNDER_INVESTIGATION",
         "bank_frozen": False
     }
+
+    # 8. Build Evidence-to-Intelligence Subgraph (EIG)
+    case_record["intelligence_graph"] = build_case_subgraph(case_record)
 
     # Save to database and disk
     CASES_DB.insert(0, case_record)
@@ -816,7 +755,32 @@ async def get_case_detail(case_id: str):
     target_case = next((c for c in CASES_DB if c["case_id"] == case_id), None)
     if not target_case:
         raise HTTPException(status_code=404, detail="Case not found")
+    if "verification_report" not in target_case:
+        target_case["verification_report"] = verify_cross_evidence(
+            voice_text=target_case.get("transcript", ""),
+            ocr_text=target_case.get("ocr_text", ""),
+            user_text=target_case.get("raw_text", "")
+        )
+    if "intelligence_graph" not in target_case:
+        target_case["intelligence_graph"] = build_case_subgraph(target_case)
     return JSONResponse(content={"status": "success", "case": target_case})
+
+
+@app.get("/api/cases/{case_id}/graph")
+async def get_case_graph(case_id: str):
+    """Retrieve specific case Evidence-to-Intelligence Graph (EIG)."""
+    target_case = next((c for c in CASES_DB if c["case_id"] == case_id), None)
+    if not target_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    graph = target_case.get("intelligence_graph") or build_case_subgraph(target_case)
+    return JSONResponse(content={"status": "success", "case_id": case_id, "graph": graph})
+
+
+@app.get("/api/intelligence-graph")
+async def get_multi_case_graph():
+    """Retrieve multi-case syndicate intelligence graph across all logged cases."""
+    graph = build_multi_case_intelligence_graph(CASES_DB)
+    return JSONResponse(content={"status": "success", "graph": graph})
 
 
 # ---------------------------------------------------------------------------
@@ -857,22 +821,33 @@ async def get_mule_correlations():
 
 
 # ---------------------------------------------------------------------------
-# API ROUTE: SECTION 91 CrPC STATUTORY BANK FREEZE DIRECTIVE
+
+# ---------------------------------------------------------------------------
+# API ROUTE: DEMO BANK-FREEZE REQUEST
 # ---------------------------------------------------------------------------
 @app.post("/api/cases/{case_id}/freeze")
 async def trigger_bank_freeze(case_id: str):
-    """Issue Section 91 CrPC statutory debit freeze."""
-    target_case = next((c for c in CASES_DB if c["case_id"] == case_id), None)
+    """Record a simulated freeze request; no external bank action is performed."""
+    target_case = next(
+        (c for c in CASES_DB if c["case_id"] == case_id), None
+    )
+
     if not target_case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    target_case["bank_frozen"] = True
-    target_case["status"] = "BANK_FREEZE_ISSUED"
+    # This is a local demonstration action, not a real bank freeze.
+    target_case["bank_frozen"] = False
+    target_case["demo_freeze_requested"] = True
+    target_case["status"] = "DEMO_FREEZE_REQUEST_RECORDED"
+
     save_cases(CASES_DB)
 
     return JSONResponse(content={
         "status": "success",
-        "message": f"Section 91 CrPC Debit Freeze Notice dispatched for Case {case_id} to NPCI & Beneficiary Banks.",
+        "message": (
+            f"Demo freeze request recorded for Case {case_id}. "
+            "No bank account was frozen and no external notification was sent."
+        ),
         "case": target_case
     })
 

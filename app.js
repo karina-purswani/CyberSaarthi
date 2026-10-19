@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CyberSaarthi - Citizen Portal Client Logic (app.js)
  * Real Client Architecture:
  * - Real in-browser Speech Recognition (Web Speech API) & MediaRecorder Audio
@@ -31,12 +31,12 @@ const appState = {
 // ---------------------------------------------------------------------------
 const I18N = {
   en: {
-    navSubtitle: "Vernacular Cyber-Fraud Intelligence & Cash-Out Prediction",
+    navSubtitle: "Vernacular Cyber-Fraud Intelligence & Evidence Review",
     heroBadge: "2-Hour 'Golden Hour' Recovery Protocol",
     heroTitle: "Report Cyber Fraud in Your Own Voice",
-    heroDesc: "Speak naturally in Marathi, Hindi, or English or upload payment screenshots. The system transcribes your voice, runs OCR on receipts, extracts transaction indicators, and models cash-out withdrawal risk.",
+    heroDesc: "Speak in Marathi, Hindi, or English, or upload payment screenshots. The system transcribes voice, runs OCR, and extracts indicators for evidence review.",
     goldenTitle: "Golden Hour Clock",
-    goldenSubtitle: "Critical window to freeze bank accounts and prevent ATM cash-out",
+    goldenSubtitle: "Report promptly to your bank and the official cybercrime helpline.",
     intakeTitle: "Incident Evidence Intake",
     intakeSubtitle: "Record your voice, upload payment receipt, or enter details",
     lblAudioRecord: "1. Vernacular Voice Statement (Speech Recognition)",
@@ -53,31 +53,31 @@ const I18N = {
     lblVictimCity: "Incident City / Cyber Division",
     lblIncidentTime: "Time Elapsed Since Fraud",
     lblIncidentNotes: "Incident Details / Text Complaint (Optional if voice/receipt provided)",
-    btnSubmitText: "Analyze Fraud & Predict Cash-Out Risk",
+    btnSubmitText: "Analyze Incident & Verify Evidence",
     stepperTitle: "AI Pipeline Execution",
     step1: "Uploading Multi-Modal Evidence",
     step2: "Transcribing Voice Statement",
     step3: "Running Optical Character Recognition (OCR)",
     step4: "Extracting Forensic Indicators",
-    step5: "Predicting ATM Cash-Out & FIR",
+    step5: "Verifying Evidence & Preparing Complaint",
     phTitle: "Awaiting Incident Evidence",
-    phDesc: "Submit your voice recording, transaction screenshot, or incident details. Your real extracted indicators and predicted ATM cash-out nodes will appear here.",
+    phDesc: "Submit a voice recording, transaction screenshot, or incident details to review the extracted evidence.",
     lblResAmount: "Disputed Amount",
     lblResFraud: "Fraud Category",
     lblResUpi: "Scammer / Mule UPI ID",
     lblResUtr: "12-Digit Bank UTR",
     lblResPhone: "Suspect Caller",
     lblResTranscript: "Citizen Statement / Evidence Narrative:",
-    lblResAtm: "Predicted Cash-Out ATM Hubs:",
+    lblResAtm: "Incident Evidence Review:",
     btnDownloadTxt: "Download Statutory Complaint FIR PDF"
   },
   mr: {
-    navSubtitle: "स्थानिक भाषा सायबर-गुन्हे बुद्धिमत्ता आणि रोख-निकासी अंदाज प्रणाली",
+    navSubtitle: "स्थानिक भाषेतील सायबर गुन्हे माहिती आणि पुरावा तपासणी",
     heroBadge: "२ तासांचा 'सुवर्ण काळ' (Golden Hour) संरक्षण प्रोटोकॉल",
     heroTitle: "आपल्या स्वतःच्या भाषेत सायबर फसवणुकीची तक्रार नोंदवा",
-    heroDesc: "मराठी, हिंदी किंवा इंग्रजीमध्ये बोला किंवा पेमेंट पावतीचा स्क्रीनशॉट जोडा. आमची प्रणाली UTR क्रमांक, स्कॅमर UPI शोधून काढते आणि गुन्हेगार पैसे काढण्यापूर्वी एटीएम धोक्याचा अंदाज लावते.",
+    heroDesc: "मराठी, हिंदी किंवा इंग्रजीमध्ये बोला किंवा पेमेंट पावतीचा स्क्रीनशॉट जोडा. प्रणाली आवाजाचे लेखनात रूपांतर करते, OCR वापरते आणि पुराव्याची माहिती तपासते.",
     goldenTitle: "गोल्डन अवर घड्याळ",
-    goldenSubtitle: "बँक खाती गोठवण्यासाठी आणि एटीएममधून पैसे काढण्यापासून रोखण्यासाठी महत्त्वपूर्ण वेळ",
+    goldenSubtitle: "आपल्या बँकेला आणि अधिकृत सायबर गुन्हे हेल्पलाइनला त्वरित कळवा.",
     intakeTitle: "घटना पुरावे नोंदणी",
     intakeSubtitle: "आवाज रेकॉर्ड करा, पावतीचा स्क्रीनशॉट जोडा किंवा तपशील लिहा",
     lblAudioRecord: "१. व्हॉइस तक्रार (मराठी/हिंदी/इंग्रजी स्पीच रेकग्निशन)",
@@ -94,31 +94,31 @@ const I18N = {
     lblVictimCity: "घटनेचे शहर / सायबर विभाग",
     lblIncidentTime: "घटनेनंतर उलटलेला वेळ",
     lblIncidentNotes: "तक्रारीचे तपशील / माहिती (व्हॉइस/पावती दिली असल्यास ऐच्छिक)",
-    btnSubmitText: "फसवणूक विश्लेषण करा आणि रोख-निकासी धोका शोधा",
+    btnSubmitText: "घटनेचे विश्लेषण करा आणि पुरावे तपासा",
     stepperTitle: "AI विश्लेषण प्रगती",
     step1: "पुरावे सर्व्हरवर अपलोड होत आहेत",
     step2: "व्हॉइस ट्रान्सक्रिप्शन",
     step3: "पावती OCR स्कॅनिंग (RapidOCR)",
     step4: "फॉरेन्सिक निर्देशक शोधणे (UTR, UPI, रक्कम)",
-    step5: "एटीएम कॅश-आउट धोका आणि FIR निर्मिती",
+    step5: "पुरावे तपासणे आणि तक्रार तयार करणे",
     phTitle: "पुराव्यांची प्रतीक्षा आहे",
-    phDesc: "व्हॉइस रेकॉर्डिंग, स्क्रीनशॉट किंवा माहिती सबमिट करा. वास्तविक काढलेली रक्कम, UTR, UPI आणि एटीएम केंद्रे येथे दिसतील.",
+    phDesc: "पुराव्याची माहिती तपासण्यासाठी आवाजाची नोंद, व्यवहाराचा स्क्रीनशॉट किंवा घटनेचा तपशील सादर करा.",
     lblResAmount: "फसवणूक झालेली रक्कम",
     lblResFraud: "गुन्ह्याचा प्रकार",
     lblResUpi: "संशयित / म्यूल UPI आयडी",
     lblResUtr: "१२-अंकी बँक UTR क्रमांक",
     lblResPhone: "संशयित कॉलर नंबर",
     lblResTranscript: "नागरिकाचे मूळ निवेदन:",
-    lblResAtm: "संशयित एटीएम व बँक रोख-निकासी केंद्रे:",
+    lblResAtm: "घटनेच्या पुराव्यांची तपासणी",
     btnDownloadTxt: "कायदेशीर सायबर तक्रार FIR PDF डाऊनलोड करा"
   },
   hi: {
-    navSubtitle: "स्थानीय भाषा साइबर-धोखाधड़ी इंटेलिजेंस एवं कैश-आउट भविष्यवाणी प्रणाली",
+    navSubtitle: "स्थानीय भाषा में साइबर अपराध की जानकारी और साक्ष्य समीक्षा",
     heroBadge: "2-घंटे का 'गोल्डन ऑवर' त्वरित रिकवरी प्रोटोकॉल",
     heroTitle: "अपनी मूल भाषा में साइबर अपराध की शिकायत दर्ज करें",
-    heroDesc: "मराठी, हिंदी या अंग्रेजी में बोलें या पेमेंट का स्क्रीनशॉट जोड़ें। हमारा AI सिस्टम UTR नंबर, स्कैमर UPI निकालता है और पैसे निकाले जाने से पहले ATM खतरे का पूर्वानुमान लगाता है।",
+    heroDesc: "मराठी, हिंदी या अंग्रेज़ी में बोलें या भुगतान रसीद का स्क्रीनशॉट जोड़ें। सिस्टम आवाज़ को लिखित रूप में बदलता है, OCR चलाता है और साक्ष्य से मिली जानकारी की समीक्षा करता है।",
     goldenTitle: "गोल्डन ऑवर क्लॉक",
-    goldenSubtitle: "म्यूल बैंक खाते फ्रीज करने और एटीएम से निकासी रोकने का सबसे महत्वपूर्ण समय",
+    goldenSubtitle: "अपने बैंक और आधिकारिक साइबर अपराध हेल्पलाइन को तुरंत सूचित करें।",
     intakeTitle: "साक्ष्य एवं घटना विवरण दर्ज करें",
     intakeSubtitle: "वॉयस रिकॉर्ड करें, पेमेंट स्लिप अपलोड करें या विवरण लिखें",
     lblAudioRecord: "1. वॉयस शिकायत (बहुभाषी स्पीच रिकग्निशन)",
@@ -135,22 +135,22 @@ const I18N = {
     lblVictimCity: "घटना का शहर / साइबर सेल",
     lblIncidentTime: "घटना के बाद बीता हुआ समय",
     lblIncidentNotes: "घटना का विवरण / लिखित शिकायत",
-    btnSubmitText: "धोखाधड़ी का विश्लेषण करें एवं कैश-आउट खतरा जांचें",
+    btnSubmitText: "घटना का विश्लेषण करें और साक्ष्य की जाँच करें",
     stepperTitle: "AI पाइपलाइन की स्थिति",
     step1: "साक्ष्य अपलोड हो रहे हैं",
     step2: "आवाज से टेक्स्ट रूपांतरण",
     step3: "रसीद का OCR विश्लेषण (RapidOCR)",
     step4: "फॉरेंसिक संकेतक निष्कर्षण (UTR, UPI, राशि)",
-    step5: "एटीएम कैश-आउट पूर्वानुमान एवं FIR ड्राफ्ट",
+    step5: "साक्ष्य की जाँच और शिकायत तैयार करना",
     phTitle: "साक्ष्य सबमिट होने की प्रतीक्षा",
-    phDesc: "वॉयस रिकॉर्डिंग, स्क्रीनशॉट या विवरण दर्ज करें। वास्तविक हड़पी गई राशि, UTR, UPI और एटीएम विथड्रॉल केंद्र यहाँ लाइव दिखाई देंगे।",
+    phDesc: "निकाली गई साक्ष्य जानकारी की समीक्षा के लिए आवाज़ की रिकॉर्डिंग, लेन-देन का स्क्रीनशॉट या घटना का विवरण भेजें।",
     lblResAmount: "हड़पी गई राशि",
     lblResFraud: "अपराध की श्रेणी",
     lblResUpi: "संदिग्ध / म्यूल UPI आईडी",
     lblResUtr: "12-अंकीय बैंक UTR",
     lblResPhone: "संदिग्ध कॉलर",
     lblResTranscript: "शिकायतकर्ता का वक्तव्य:",
-    lblResAtm: "संभावित एटीएम कैश-आउट केंद्र:",
+    lblResAtm: "घटना के साक्ष्य की समीक्षा",
     btnDownloadTxt: "कानूनी शिकायत FIR PDF डाउनलोड करें"
   }
 };
@@ -275,7 +275,7 @@ async function startAudioRecording() {
     appState.mediaRecorder.onstop = () => {
       appState.recordedAudioBlob = new Blob(appState.audioChunks, { type: 'audio/webm' });
       appState.recordedAudioFile = new File([appState.recordedAudioBlob], "victim_voice_complaint.webm", { type: "audio/webm" });
-      
+
       const audioUrl = URL.createObjectURL(appState.recordedAudioBlob);
       const audioPlayer = document.getElementById('audio-player');
       const previewContainer = document.getElementById('audio-preview-container');
@@ -306,7 +306,7 @@ async function startAudioRecording() {
       appState.recordSeconds++;
       const mins = Math.floor(appState.recordSeconds / 60);
       const secs = appState.recordSeconds % 60;
-      document.getElementById('record-timer').textContent = 
+      document.getElementById('record-timer').textContent =
         `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }, 1000);
 
@@ -344,7 +344,7 @@ function initLiveSpeechRecognition() {
       if (interim) {
         appState.liveSpeechTranscript = interim;
         if (liveText) liveText.textContent = interim;
-        
+
         // Also sync with incident notes if empty or user wants
         const notesEl = document.getElementById('incident-notes');
         if (notesEl && !notesEl.value) {
@@ -386,15 +386,15 @@ function clearRecordedAudio() {
   appState.recordedAudioFile = null;
   appState.audioChunks = [];
   appState.liveSpeechTranscript = '';
-  
+
   const audioPlayer = document.getElementById('audio-player');
   const previewContainer = document.getElementById('audio-preview-container');
   const liveBox = document.getElementById('live-speech-box');
-  
+
   if (audioPlayer) audioPlayer.src = "";
   if (previewContainer) previewContainer.classList.add('hidden');
   if (liveBox) liveBox.classList.add('hidden');
-  
+
   document.getElementById('record-timer').textContent = "00:00";
   document.getElementById('record-status').textContent = "Ready for voice input";
   document.getElementById('record-status').className = "text-xs text-gray-500";
@@ -490,7 +490,7 @@ function detectGPSLocation() {
         lat: position.coords.latitude,
         lon: position.coords.longitude
       };
-      alert(`GPS coordinates acquired: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}. Cash-out prediction will use your live location.`);
+      alert(`GPS coordinates acquired: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}. Incident location recorded for context.`);
     },
     (error) => {
       alert("Could not retrieve GPS location. Selected city hub will be used.");
@@ -603,7 +603,7 @@ function resetStepperUI() {
     if (el) {
       el.className = "flex items-center gap-3 p-2.5 rounded-lg border border-gray-800 bg-gray-900/50 text-gray-400";
       const icon = el.querySelector('.step-icon');
-      if (icon) icon.textContent = "○";
+      if (icon) icon.textContent = "â—‹";
     }
   }
 }
@@ -615,10 +615,10 @@ function setStepState(stepNum, state) {
   const icon = el.querySelector('.step-icon');
   if (state === 'active') {
     el.className = "flex items-center gap-3 p-2.5 rounded-lg border border-cyan-500/60 bg-cyan-950/40 text-cyan-200 step-active";
-    if (icon) icon.textContent = "⏳";
+    if (icon) icon.textContent = "â³";
   } else if (state === 'completed') {
     el.className = "flex items-center gap-3 p-2.5 rounded-lg border border-emerald-500/60 bg-emerald-950/40 text-emerald-200 step-completed";
-    if (icon) icon.textContent = "✓";
+    if (icon) icon.textContent = "âœ“";
   }
 }
 
@@ -647,30 +647,22 @@ function renderForensicResults(c) {
   document.getElementById('res-case-id').textContent = c.case_id;
 
   const threatBadge = document.getElementById('res-threat-badge');
-  threatBadge.textContent = `${c.threat_level} THREAT`;
-  if (c.threat_level === 'CRITICAL') {
-    threatBadge.className = "px-2.5 py-1 rounded-md text-xs font-bold bg-red-950 text-red-400 border border-red-800 animate-pulse";
-  } else if (c.threat_level === 'HIGH') {
-    threatBadge.className = "px-2.5 py-1 rounded-md text-xs font-bold bg-orange-950 text-orange-400 border border-orange-800";
-  } else if (c.threat_level === 'MEDIUM') {
-    threatBadge.className = "px-2.5 py-1 rounded-md text-xs font-bold bg-amber-950 text-amber-400 border border-amber-800";
-  } else {
-    threatBadge.className = "px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800";
-  }
+  threatBadge.textContent = "INCIDENT RECORDED";
+  threatBadge.className = "px-2.5 py-1 rounded-md text-xs font-bold bg-gray-800 text-gray-300 border border-gray-700";
 
   const goldenRem = document.getElementById('res-golden-rem');
   const goldenBanner = document.getElementById('res-golden-banner');
   if (c.golden_hour_active) {
     document.getElementById('res-golden-status').textContent = "Golden Hour Active";
     document.getElementById('res-golden-status').className = "text-xs font-bold text-red-300";
-    document.getElementById('res-golden-desc').textContent = "High probability of ATM cash-out right now";
+    document.getElementById('res-golden-desc').textContent = "Time-sensitive reporting window. Contact your bank and the official cybercrime helpline promptly.";
     goldenBanner.className = "rounded-xl p-3 bg-red-950/40 border border-red-800 flex items-center justify-between";
     goldenRem.textContent = `${c.golden_hour_remaining_mins}m left`;
     goldenRem.className = "font-mono text-xs font-bold px-2 py-1 rounded bg-red-900/60 text-red-200";
   } else {
     document.getElementById('res-golden-status').textContent = "Golden Hour Window Expired";
     document.getElementById('res-golden-status').className = "text-xs font-bold text-gray-300";
-    document.getElementById('res-golden-desc').textContent = "Window elapsed; funds likely transferred across accounts";
+    document.getElementById('res-golden-desc').textContent = "The reference window has elapsed. Report the incident immediately anyway.";
     goldenBanner.className = "rounded-xl p-3 bg-gray-900 border border-gray-800 flex items-center justify-between";
     goldenRem.textContent = "Expired";
     goldenRem.className = "font-mono text-xs font-bold px-2 py-1 rounded bg-gray-800 text-gray-400";
@@ -686,33 +678,6 @@ function renderForensicResults(c) {
   // Real Citizen Statement / Transcript
   document.getElementById('res-transcript').textContent = c.transcript ? `"${c.transcript}"` : "Evidence submitted.";
 
-  // Real ATM Cash-Out Hubs
-  const atmListContainer = document.getElementById('res-atm-list');
-  atmListContainer.innerHTML = '';
-  if (c.atm_clusters && c.atm_clusters.length > 0) {
-    c.atm_clusters.slice(0, 3).forEach(atm => {
-      const tierBadge = atm.risk_tier === 'HIGH' 
-        ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 font-bold">HIGH RISK</span>'
-        : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 font-bold">MEDIUM RISK</span>';
-
-      const atmItem = document.createElement('div');
-      atmItem.className = "bg-gray-900/80 p-2.5 rounded-lg border border-gray-800 flex items-center justify-between text-xs";
-      atmItem.innerHTML = `
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-gray-200">${atm.name}</span>
-            ${tierBadge}
-          </div>
-          <p class="text-[10px] text-gray-400">${atm.distance_km} km away • Window: ${atm.time_window}</p>
-        </div>
-        <div class="text-right">
-          <span class="font-mono font-bold text-cyan-400">${atm.risk_score}%</span>
-          <span class="text-[9px] text-gray-500 block">Probability</span>
-        </div>
-      `;
-      atmListContainer.appendChild(atmItem);
-    });
-  }
 
   // Statutory PDF Download Button
   const firBtn = document.getElementById('btn-download-fir');

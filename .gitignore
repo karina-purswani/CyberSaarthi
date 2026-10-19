@@ -1,0 +1,17 @@
+﻿# Python cache files
+__pycache__/
+*.py[cod]
+
+# Environment secrets
+.env
+.env.*
+
+# Uploaded evidence and generated reports
+uploads/*
+!uploads/.gitkeep
+generated_complaints/*
+!generated_complaints/.gitkeep
+
+# Local development files
+.venv/
+venv/
