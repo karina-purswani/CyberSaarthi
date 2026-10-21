@@ -1,0 +1,198 @@
+export type VerificationResultType = 
+  | 'MATCH' 
+  | 'MISMATCH' 
+  | 'MISSING_IN_COMPLAINT' 
+  | 'MISSING_IN_EVIDENCE' 
+  | 'UNABLE_TO_VERIFY' 
+  | 'MANUAL_REVIEW_REQUIRED';
+
+export type IncidentStatus = 
+  | 'AWAITING_REVIEW' 
+  | 'IN_PROGRESS' 
+  | 'VERIFIED' 
+  | 'FLAGGED_FOR_MANUAL_AUDIT' 
+  | 'CLOSED';
+
+export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface ComplaintSummary {
+  id: string;
+  reference_id: string;
+  submission_time: string;
+  language: string;
+  incident_type: string;
+  reported_amount: number | null;
+  reported_upi_id: string | null;
+  reported_txn_id: string | null;
+  status: IncidentStatus;
+  priority: PriorityLevel;
+  evidence_count: number;
+  findings_count: number;
+  mismatch_count: number;
+  is_demo: boolean;
+}
+
+export interface EvidenceFile {
+  id: string;
+  complaint_id: string;
+  original_filename: string;
+  storage_filename: string;
+  file_type: string;
+  file_size_bytes: number;
+  ocr_status: string;
+  ocr_confidence: number | null;
+  raw_ocr_text: string | null;
+  created_at: string;
+  extracted_fields?: ExtractedField[];
+}
+
+export interface ExtractedField {
+  id: string;
+  evidence_id: string;
+  complaint_id: string;
+  field_name: string;
+  raw_value: string | null;
+  normalized_value: string | null;
+  confidence: number | null;
+  source_context: string | null;
+  created_at: string;
+}
+
+export interface VerificationFinding {
+  id: string;
+  complaint_id: string;
+  evidence_id: string | null;
+  field_name: string;
+  complaint_value: string | null;
+  evidence_value: string | null;
+  normalized_complaint_value: string | null;
+  normalized_evidence_value: string | null;
+  result: VerificationResultType;
+  reason: string;
+  review_recommendation: string;
+  created_at: string;
+}
+
+export interface ReviewerNote {
+  id: string;
+  complaint_id: string;
+  reviewer_name: string;
+  note: string;
+  review_status: string;
+  created_at: string;
+}
+
+export interface RelatedLead {
+  id: string;
+  reference_id: string;
+  incident_type: string;
+  reported_amount: number | null;
+  indicator_type: string;
+  normalized_value: string;
+  rule_applied: string;
+}
+
+export interface ComplaintDetail {
+  complaint: {
+    id: string;
+    reference_id: string;
+    submission_time: string;
+    language: string;
+    incident_type: string;
+    description: string;
+    reported_amount: number | null;
+    reported_txn_id: string | null;
+    reported_upi_id: string | null;
+    incident_datetime: string | null;
+    victim_phone: string | null;
+    victim_state: string | null;
+    status: IncidentStatus;
+    priority: PriorityLevel;
+    is_demo: boolean;
+    created_at: string;
+    updated_at: string;
+  };
+  evidence_files: EvidenceFile[];
+  extracted_fields: ExtractedField[];
+  verification_findings: VerificationFinding[];
+  reviewer_notes: ReviewerNote[];
+  related_leads: RelatedLead[];
+}
+
+export interface GraphNode {
+  id: string;
+  type: 'COMPLAINT' | 'INDICATOR';
+  label: string;
+  reference_id?: string;
+  incident_type?: string;
+  amount?: number | null;
+  status?: string;
+  priority?: string;
+  indicator_type?: 'UPI_ID' | 'PHONE_NUMBER' | 'TRANSACTION_ID';
+  raw_value?: string;
+  normalized_value?: string;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relation: string;
+  rule_applied: string;
+  explanation: string;
+  evidence_id: string | null;
+  evidence_filename: string | null;
+}
+
+export interface GraphCluster {
+  indicator_id: string;
+  connected_complaints: string[];
+  count: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  clusters: GraphCluster[];
+  lead_disclaimer: string;
+}
+
+export interface OverviewMetrics {
+  total_complaints: number;
+  awaiting_review: number;
+  under_investigation: number;
+  evidence_needing_manual_review: number;
+  complaints_with_shared_indicators: number;
+  total_amount_reported: number;
+  recent_submissions: Array<{
+    id: string;
+    reference_id: string;
+    submission_time: string;
+    incident_type: string;
+    reported_amount: number | null;
+    status: string;
+    priority: string;
+    is_demo: boolean;
+  }>;
+  contains_demo_data: boolean;
+  demo_count: number;
+}
+
+export interface DemoCase {
+  id: string;
+  reference_id: string;
+  submission_time: string;
+  language: string;
+  incident_type: string;
+  description: string;
+  reported_amount: number | null;
+  reported_txn_id: string | null;
+  reported_upi_id: string | null;
+  incident_datetime: string | null;
+  victim_phone: string | null;
+  victim_state: string | null;
+  status: string;
+  priority: string;
+  evidence_filename: string;
+  expected_scenario: string;
+}
