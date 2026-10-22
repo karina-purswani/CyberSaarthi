@@ -5,6 +5,15 @@ import { fetchInvestigationReport, fetchComplaints } from '../services/api';
 import type { ComplaintSummary } from '../types';
 import { DisclaimerNotice } from '../components/DisclaimerNotice';
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge';
+import './ReportsPage.css';
+
+const REPORT_DISCLAIMER = 'NOTICE: This document is an automated investigation-support summary produced by CyberSaarthi. It is designed solely to assist law enforcement officers, cyber cells, and authorized reviewers. It is NOT a First Information Report (FIR), court summons, or determination of guilt.';
+
+const formatReportDate = (value?: string | null) => {
+  if (!value) return 'Not recorded';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
+};
 
 export const ReportsPage: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>();
@@ -41,21 +50,21 @@ export const ReportsPage: React.FC = () => {
 
   const handleDownloadJSON = () => {
     if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CyberSaarthi_Dossier_${report.complaint.reference_id}.json`;
+    a.download = `CyberSaarthi_Dossier_${report.complaint?.reference_id || 'report'}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handlePrint = () => {
-    window.print();
+    if (report) window.print();
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem', maxWidth: '900px', margin: '0 auto' }}>
+    <div className="reports-page" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem', maxWidth: '900px', margin: '0 auto' }}>
       
       {/* Action bar (Hidden when printing) */}
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -141,8 +150,9 @@ export const ReportsPage: React.FC = () => {
 
       {/* Formal Printable Document Card */}
       {report && (
-        <div
+        <article
           id="printable-dossier"
+          className="printable-dossier"
           style={{
             backgroundColor: 'var(--surface-primary)',
             border: '1px solid var(--border-light)',
@@ -155,7 +165,7 @@ export const ReportsPage: React.FC = () => {
           }}
         >
           {/* Document Header */}
-          <div style={{ borderBottom: '2px solid var(--border-light)', paddingBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <header className="dossier-header" style={{ borderBottom: '2px solid var(--border-light)', paddingBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{ backgroundColor: 'var(--brand-teal)', color: '#FFFFFF', padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
                 <Shield size={24} />
@@ -172,52 +182,57 @@ export const ReportsPage: React.FC = () => {
 
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {report.complaint.reference_id}
+                {report.complaint?.reference_id || 'Reference not recorded'}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Generated: {new Date(report.meta.generated_at).toLocaleString()}
+                Generated: {formatReportDate(report.meta?.generated_at)}
               </div>
             </div>
-          </div>
+          </header>
 
           {/* Mandatory Civic Legal Disclaimer */}
-          <DisclaimerNotice type="report" />
+          <div className="dossier-disclaimer">
+            <DisclaimerNotice
+              type="report"
+              customMessage={report.meta?.disclaimer || REPORT_DISCLAIMER}
+            />
+          </div>
 
           {/* Section 1: Complaint & Complainant Details */}
-          <div>
+          <section className="dossier-section">
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
               1. Incident & Citizen Statement
             </h2>
-            <div style={{ backgroundColor: 'var(--surface-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+            <div className="dossier-statement-card" style={{ backgroundColor: 'var(--surface-subtle)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
-                <div>Category: <strong>{report.complaint.incident_type}</strong></div>
-                <div>Submission Time: <strong>{new Date(report.complaint.submission_time).toLocaleString()}</strong></div>
-                <div>Reported Amount: <strong>{report.complaint.reported_amount ? `₹${report.complaint.reported_amount.toLocaleString('en-IN')}` : 'None'}</strong></div>
-                <div>Complainant Contact: <strong>{report.complaint.victim_phone || 'Not recorded'}</strong></div>
-                <div>Reported Suspect UPI: <strong style={{ fontFamily: 'var(--font-mono)' }}>{report.complaint.reported_upi_id || 'None'}</strong></div>
-                <div>Reported Txn ID: <strong style={{ fontFamily: 'var(--font-mono)' }}>{report.complaint.reported_txn_id || 'None'}</strong></div>
+                <div>Category: <strong>{report.complaint?.incident_type || 'Not recorded'}</strong></div>
+                <div>Submission Time: <strong>{formatReportDate(report.complaint?.submission_time)}</strong></div>
+                <div>Reported Amount: <strong>{report.complaint?.reported_amount != null ? `₹${Number(report.complaint.reported_amount).toLocaleString('en-IN')}` : 'Not recorded'}</strong></div>
+                <div>Complainant Contact: <strong>{report.complaint?.victim_phone || 'Not recorded'}</strong></div>
+                <div>Reported Suspect UPI: <strong className="dossier-monospace">{report.complaint?.reported_upi_id || 'Not recorded'}</strong></div>
+                <div>Reported Txn ID: <strong className="dossier-monospace">{report.complaint?.reported_txn_id || 'Not recorded'}</strong></div>
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Complainant Narrative ({report.complaint.language.toUpperCase()}):
+                  Complainant Narrative ({report.complaint?.language?.toUpperCase() || 'LANGUAGE NOT RECORDED'}):
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                  {report.complaint.description}
+                  {report.complaint?.description || 'No citizen statement recorded.'}
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Section 2: Evidence Files Inventory */}
-          <div>
+          <section className="dossier-section">
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
-              2. Uploaded Evidence Inventory ({report.evidence_inventory.length})
+              2. Uploaded Evidence Inventory ({(report.evidence_inventory || []).length})
             </h2>
             <table>
               <thead>
                 <tr>
-                  <th>File Name</th>
+                  <th>File Name / Evidence ID</th>
                   <th>Type</th>
                   <th>Size</th>
                   <th>OCR Extraction</th>
@@ -225,24 +240,26 @@ export const ReportsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {report.evidence_inventory.map((ev: any) => (
+                {(report.evidence_inventory || []).map((ev: any) => (
                   <tr key={ev.id}>
-                    <td style={{ fontWeight: 600 }}>{ev.original_filename}</td>
-                    <td>{ev.file_type}</td>
-                    <td>{(ev.file_size_bytes / 1024).toFixed(1)} KB</td>
-                    <td>{ev.ocr_status}</td>
-                    <td>{ev.ocr_confidence ? `${(ev.ocr_confidence * 100).toFixed(1)}%` : 'N/A'}</td>
+                    <td className="dossier-long-value"><strong>{ev.original_filename || 'Filename not recorded'}</strong><span className="dossier-evidence-id">ID: {ev.id || 'Not recorded'}</span></td>
+                    <td>{ev.file_type || 'Not recorded'}</td>
+                    <td>{typeof ev.file_size_bytes === 'number' ? `${(ev.file_size_bytes / 1024).toFixed(1)} KB` : 'Not recorded'}</td>
+                    <td>{ev.ocr_status || 'Not recorded'}</td>
+                    <td>{typeof ev.ocr_confidence === 'number' ? `${(ev.ocr_confidence * 100).toFixed(1)}%` : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            {(report.evidence_inventory || []).length === 0 && <p className="dossier-empty">No evidence files are recorded for this complaint.</p>}
+          </section>
 
           {/* Section 3: Evidence Consistency Verification Matrix */}
-          <div>
+          <section className="dossier-section">
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
               3. Deterministic Evidence Consistency Findings
             </h2>
+            <p className="dossier-section-note">The following findings are generated by deterministic comparison of complaint details and extracted evidence. They are automated decision-support results, not officer determinations.</p>
             <table>
               <thead>
                 <tr>
@@ -254,33 +271,34 @@ export const ReportsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {report.verification_matrix.map((vm: any, i: number) => (
+                {(report.verification_matrix || []).map((vm: any, i: number) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{vm.field_name.replace(/_/g, ' ').toUpperCase()}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78125rem' }}>{vm.complaint_value || '—'}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78125rem' }}>{vm.evidence_value || '—'}</td>
+                    <td style={{ fontWeight: 600 }}>{(vm.field_name || 'Unknown field').replace(/_/g, ' ').toUpperCase()}</td>
+                    <td className="dossier-monospace">{vm.complaint_value || '—'}</td>
+                    <td className="dossier-monospace">{vm.evidence_value || '—'}</td>
                     <td>
-                      <DiscrepancyBadge result={vm.result} />
+                      {vm.result ? <DiscrepancyBadge result={vm.result} /> : 'Not recorded'}
                     </td>
                     <td style={{ fontSize: '0.78125rem', lineHeight: 1.4 }}>
-                      <div>{vm.reason}</div>
+                      <div>{vm.reason || 'No reason recorded.'}</div>
                       <div style={{ color: 'var(--text-secondary)', fontSize: '0.71875rem', fontStyle: 'italic', marginTop: '0.15rem' }}>
-                        Action: {vm.review_recommendation}
+                        Action: {vm.review_recommendation || 'Not recorded'}
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            {(report.verification_matrix || []).length === 0 && <p className="dossier-empty">No deterministic verification findings are recorded.</p>}
+          </section>
 
           {/* Section 4: Cross-Complaint Intelligence Leads */}
-          <div>
+          <section className="dossier-section">
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
               4. Cross-Complaint Shared Indicator Leads
             </h2>
-            {report.investigative_leads.length === 0 ? (
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '0.5rem', backgroundColor: 'var(--surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
+            {(report.investigative_leads || []).length === 0 ? (
+              <div className="dossier-lead-empty" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '0.5rem', backgroundColor: 'var(--surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
                 No shared identifiers linked to other stored complaints.
               </div>
             ) : (
@@ -294,10 +312,10 @@ export const ReportsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {report.investigative_leads.map((lead: any, i: number) => (
+                  {(report.investigative_leads || []).map((lead: any, i: number) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 600 }}>{lead.indicator_type}</td>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{lead.indicator_value}</td>
+                      <td className="dossier-monospace">{lead.indicator_value || 'Not recorded'}</td>
                       <td style={{ fontWeight: 600, color: 'var(--brand-teal)' }}>{lead.linked_complaint}</td>
                       <td>{lead.linked_incident_type}</td>
                     </tr>
@@ -305,39 +323,40 @@ export const ReportsPage: React.FC = () => {
                 </tbody>
               </table>
             )}
-          </div>
+          </section>
 
           {/* Section 5: Reviewer Notes & Audit Trail */}
-          <div>
+          <section className="dossier-section">
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
               5. Officer Review Decisions & Audit Trail
             </h2>
-            {report.reviewer_notes.length === 0 ? (
+            {(report.reviewer_notes || []).length === 0 ? (
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '0.5rem', backgroundColor: 'var(--surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
                 No officer notes recorded yet. Complaint is currently in triage queue.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {report.reviewer_notes.map((rn: any, i: number) => (
-                  <div key={i} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', fontSize: '0.8125rem' }}>
+                {(report.reviewer_notes || []).map((rn: any, i: number) => (
+                  <div key={i} className="dossier-review-note" style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', fontSize: '0.8125rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '0.2rem' }}>
-                      <span>Reviewer: {rn.reviewer_name} (Status: {rn.status_at_review})</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(rn.timestamp).toLocaleString()}</span>
+                      <span>Officer review recorded by: {rn.reviewer_name || 'Not recorded'} (Status: {rn.status_at_review || 'Not recorded'})</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatReportDate(rn.timestamp)}</span>
                     </div>
-                    <div style={{ color: 'var(--text-secondary)' }}>{rn.note}</div>
+                    <div style={{ color: 'var(--text-secondary)' }}>{rn.note || 'No review note recorded.'}</div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
           {/* Footer Signature Box */}
-          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.25rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <footer className="dossier-signature" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.25rem', marginTop: '1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             <div>CyberSaarthi Intelligence System | Verification Platform</div>
             <div>Officer Signature / Seal: _____________________________</div>
-          </div>
+          </footer>
 
-        </div>
+          <div className="dossier-print-footer" aria-hidden="true">CyberSaarthi | Investigation Support Dossier | {report.complaint?.reference_id || 'Reference not recorded'}</div>
+        </article>
       )}
 
     </div>

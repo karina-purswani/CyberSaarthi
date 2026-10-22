@@ -1,0 +1,230 @@
+.dossier-long-value,
+.dossier-monospace {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dossier-monospace {
+  font-family: var(--font-mono);
+}
+
+.dossier-evidence-id {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.dossier-section-note,
+.dossier-empty {
+  margin: 0 0 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.dossier-print-footer {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 15mm 14mm 18mm;
+
+  @bottom-left {
+    content: "CyberSaarthi | Investigation Support Dossier";
+    color: #53616b;
+    font-family: Arial, "Noto Sans Devanagari", sans-serif;
+    font-size: 8pt;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page);
+    color: #53616b;
+    font-family: Arial, sans-serif;
+    font-size: 8pt;
+  }
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+    color: #17252d !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-dossier,
+  #printable-dossier * {
+    visibility: visible !important;
+  }
+
+  #printable-dossier {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #17252d !important;
+    font-family: Arial, "Noto Sans Devanagari", "Nirmala UI", "Mangal", "Noto Sans", sans-serif !important;
+    font-size: 9pt !important;
+    line-height: 1.4 !important;
+    letter-spacing: normal !important;
+    gap: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .dossier-header {
+    margin: 0 0 10pt !important;
+    padding: 0 0 8pt !important;
+    border-bottom: 1.5pt solid #176b65 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .dossier-section {
+    margin: 0 0 11pt !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .dossier-section h2 {
+    margin: 0 0 5pt !important;
+    color: #145a55 !important;
+    font-family: Arial, "Noto Sans Devanagari", sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0.03em !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  #printable-dossier table {
+    width: 100% !important;
+    margin: 4pt 0 0 !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 8pt !important;
+  }
+
+  #printable-dossier thead {
+    display: table-header-group;
+  }
+
+  #printable-dossier tfoot {
+    display: table-footer-group;
+  }
+
+  #printable-dossier tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #printable-dossier th,
+  #printable-dossier td {
+    padding: 4pt 5pt !important;
+    border: 0.5pt solid #c9d1d0 !important;
+    color: #17252d !important;
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
+    text-align: left !important;
+    vertical-align: top !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  #printable-dossier th {
+    background: #eaf1ef !important;
+    color: #23413e !important;
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .dossier-disclaimer > div,
+  .dossier-statement-card,
+  .dossier-lead-empty,
+  .dossier-review-note {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .dossier-disclaimer {
+    margin: 0 0 9pt !important;
+  }
+
+  .dossier-disclaimer > div {
+    padding: 6pt 8pt !important;
+    border: 0.7pt solid #a8c8b7 !important;
+    border-radius: 0 !important;
+    background: #f2f8f4 !important;
+    color: #244a35 !important;
+    font-size: 8pt !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .dossier-disclaimer svg {
+    display: none !important;
+  }
+
+  .dossier-section-note,
+  .dossier-empty {
+    margin: 0 0 5pt !important;
+    color: #37474f !important;
+    font-size: 8pt !important;
+  }
+
+  .dossier-monospace,
+  .dossier-evidence-id {
+    font-family: "Cascadia Mono", Consolas, monospace !important;
+  }
+
+  .dossier-signature {
+    margin-top: 8pt !important;
+    padding-top: 7pt !important;
+    border-top: 0.7pt solid #9eaaa8 !important;
+    color: #48565d !important;
+    font-size: 8pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .dossier-print-footer {
+    display: none !important;
+  }
+
+  p,
+  strong,
+  span,
+  td,
+  th {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+}
