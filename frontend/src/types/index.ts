@@ -8,16 +8,37 @@ export type VerificationResultType =
 
 export type IncidentStatus = 
   | 'AWAITING_REVIEW' 
+  | 'UNDER_INVESTIGATION' 
   | 'IN_PROGRESS' 
   | 'VERIFIED' 
-  | 'FLAGGED_FOR_MANUAL_AUDIT' 
-  | 'CLOSED';
+  | 'REJECTED'
+  | 'RESOLVED';
 
 export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type UserRole = 'CITIZEN' | 'OFFICER' | 'ADMIN';
+
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  badge_number?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  created_at?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
 
 export interface ComplaintSummary {
   id: string;
   reference_id: string;
+  user_id?: string;
   submission_time: string;
   language: string;
   incident_type: string;
@@ -55,6 +76,10 @@ export interface ExtractedField {
   normalized_value: string | null;
   confidence: number | null;
   source_context: string | null;
+  is_officer_corrected?: boolean;
+  original_value?: string | null;
+  corrected_by_user_id?: string | null;
+  correction_reason?: string | null;
   created_at: string;
 }
 
@@ -77,9 +102,22 @@ export interface ReviewerNote {
   id: string;
   complaint_id: string;
   reviewer_name: string;
+  reviewer_full_name?: string;
+  badge_number?: string;
   note: string;
   review_status: string;
   created_at: string;
+}
+
+export interface StatusHistoryItem {
+  id: string;
+  complaint_id: string;
+  previous_status: string | null;
+  new_status: string;
+  changed_by_name?: string | null;
+  changed_by_role?: string | null;
+  reason?: string | null;
+  timestamp: string;
 }
 
 export interface RelatedLead {
@@ -96,6 +134,7 @@ export interface ComplaintDetail {
   complaint: {
     id: string;
     reference_id: string;
+    user_id?: string;
     submission_time: string;
     language: string;
     incident_type: string;
@@ -115,6 +154,7 @@ export interface ComplaintDetail {
   evidence_files: EvidenceFile[];
   extracted_fields: ExtractedField[];
   verification_findings: VerificationFinding[];
+  status_history?: StatusHistoryItem[];
   reviewer_notes: ReviewerNote[];
   related_leads: RelatedLead[];
 }
@@ -161,6 +201,8 @@ export interface OverviewMetrics {
   total_complaints: number;
   awaiting_review: number;
   under_investigation: number;
+  verified?: number;
+  resolved?: number;
   evidence_needing_manual_review: number;
   complaints_with_shared_indicators: number;
   total_amount_reported: number;
@@ -174,25 +216,30 @@ export interface OverviewMetrics {
     priority: string;
     is_demo: boolean;
   }>;
-  contains_demo_data: boolean;
-  demo_count: number;
 }
 
-export interface DemoCase {
-  id: string;
-  reference_id: string;
-  submission_time: string;
+export interface CitizenMetrics {
+  total_complaints: number;
+  awaiting_review: number;
+  in_progress: number;
+  verified_or_resolved: number;
+  total_reported_loss: number;
+  recent_complaints: Array<{
+    id: string;
+    reference_id: string;
+    submission_time: string;
+    incident_type: string;
+    reported_amount: number | null;
+    status: string;
+    priority: string;
+  }>;
+}
+
+export interface VoiceTranscriptionResult {
+  success: boolean;
+  transcript: string | null;
   language: string;
-  incident_type: string;
-  description: string;
-  reported_amount: number | null;
-  reported_txn_id: string | null;
-  reported_upi_id: string | null;
-  incident_datetime: string | null;
-  victim_phone: string | null;
-  victim_state: string | null;
-  status: string;
-  priority: string;
-  evidence_filename: string;
-  expected_scenario: string;
+  duration_seconds: number | null;
+  error_type: string | null;
+  message: string;
 }

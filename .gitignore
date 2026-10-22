@@ -46,3 +46,16 @@ storage/evidence/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Backend virtual environment
+backend/.venv/
+
+# Database backups and journals
+*.db.bak
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Test and tool caches
+.coverage
+htmlcov/

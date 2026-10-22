@@ -165,7 +165,7 @@ export const QueuePage: React.FC = () => {
               No complaint records found
             </div>
             <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              Try adjusting your search criteria or reset the sample database.
+              Try adjusting your search criteria or clearing active filters.
             </div>
           </div>
         ) : (
@@ -192,11 +192,6 @@ export const QueuePage: React.FC = () => {
                         <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--brand-teal)' }}>
                           {c.reference_id}
                         </span>
-                        {c.is_demo && (
-                          <span style={{ fontSize: '0.625rem', backgroundColor: '#EFF6FF', color: '#1E40AF', padding: '0.05rem 0.3rem', borderRadius: '2px', fontWeight: 600 }}>
-                            SAMPLE
-                          </span>
-                        )}
                       </div>
                     </td>
                     <td style={{ fontWeight: 500 }}>{c.incident_type}</td>

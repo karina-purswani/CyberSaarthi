@@ -1,273 +1,165 @@
-# CyberSaarthi — Cyber-Fraud Evidence Intelligence Platform
+# CyberSaarthi — Multilingual Cyber-Fraud Evidence Intelligence & Investigation Platform
 
-> **"From fragmented evidence to traceable cyber intelligence."**
+> **"From fragmented victim evidence to verifiable, traceable cyber intelligence."**
 
-CyberSaarthi is an integrated civic-tech platform designed to assist cyber-crime units, law enforcement officers, and triage analysts in processing fragmented, multilingual victim evidence (payment app receipts, transaction IDs, UPI handles, and statements).
+CyberSaarthi is an integrated civic-tech platform designed to assist cybercrime cells, police officers, and citizens in processing fragmented cyber-fraud evidence. It accepts multimodal victim statements (written descriptions or **direct in-browser audio recordings**), payment app screenshots (PhonePe, Google Pay, Paytm, BHIM), and transaction identifiers.
 
-The platform extracts transactional entities using local Optical Character Recognition (RapidOCR), executes deterministic consistency verifications between victim claims and receipt tokens, transparently surfaces discrepancies, and builds a cross-complaint relationship intelligence graph connecting shared indicators across isolated complaints.
-
----
-
-## 1. System Architecture
-
-```mermaid
-flowchart TD
-    subgraph Intake["Citizen Intake Workspace (Multilingual: EN, HI, MR)"]
-        Form["Incident Statement + Optional Txn Details"] --> Upload["Receipt / Screenshot Upload (Max 15MB)"]
-        Upload --> SubmitAPI["POST /api/complaints/submit"]
-    end
-
-    subgraph CoreBackend["FastAPI Backend Core (Python 3.14)"]
-        SubmitAPI --> SecureStore["Secure File Storage (UUID Sanitized)"]
-        SecureStore --> RapidOCR["Evidence Extraction (RapidOCR CPU ONNX)"]
-        RapidOCR --> EntityParser["Entity Extraction (Amount, UTR, UPI, Phone, App)"]
-        
-        EntityParser --> VerifEngine["Evidence Consistency Engine (Deterministic)"]
-        Form -.-> VerifEngine
-        
-        VerifEngine --> VerifFindings["Findings Matrix (MATCH, MISMATCH, MISSING)"]
-        
-        EntityParser --> GraphEngine["Cross-Complaint Intelligence Graph Engine"]
-        GraphEngine --> GraphDB["Shared Indicator Linker (UPI, UTR, Contact)"]
-        
-        VerifFindings --> SQLite[(SQLite with WAL & Foreign Keys)]
-        GraphDB --> SQLite
-    end
-
-    subgraph OfficerConsole["Officer Investigation Workspace"]
-        SQLite --> OverviewAPI["GET /api/overview/metrics"]
-        SQLite --> QueueAPI["GET /api/complaints"]
-        SQLite --> DetailAPI["GET /api/complaints/{id}"]
-        SQLite --> ReviewAPI["GET /api/evidence/{id}"]
-        SQLite --> GraphAPI["GET /api/graph"]
-        SQLite --> ReportAPI["GET /api/reports/{id}"]
-
-        OverviewAPI --> UI_Overview["Operational Overview"]
-        QueueAPI --> UI_Queue["Filterable Complaint Queue"]
-        DetailAPI --> UI_Detail["Case Details & Review Workflow"]
-        ReviewAPI --> UI_Review["Side-by-Side OCR Inspection"]
-        GraphAPI --> UI_Graph["Interactive Relationship Graph"]
-        ReportAPI --> UI_Report["Printable Investigation Dossier"]
-    end
-```
+The platform extracts transactional entities using local RapidOCR, executes deterministic consistency verifications between victim claims and receipt tokens, transparently surfaces discrepancies, enables authorized officers to perform manual field corrections with immutable audit provenance, and constructs an interactive multi-victim Intelligence Graph connecting shared syndicate indicators across isolated complaints.
 
 ---
 
-## 2. Technology Stack & Key Dependencies
+## 1. Key System Capabilities
+
+- **Direct In-Browser Voice Statement Capture**:
+  - Citizens record spoken statements directly in the web browser using the MediaRecorder API.
+  - Automatically encodes raw audio into 16kHz mono 16-bit PCM WAV in the browser, eliminating external ffmpeg requirements.
+  - Transcribes English, Hindi, and Marathi via the backend speech-to-text pipeline.
+  - Citizens review and edit the transcript before complaint submission; the system never fabricates a transcript on silence or failure.
+- **Strict Role-Based Portal Segregation**:
+  - **Citizen Portal**: User registration, complaint submission, in-browser audio recording, case status tracking, and account security. Internal police notes and cross-case syndicate leads are automatically redacted for privacy.
+  - **Officer Console**: Protected workspace for authorized investigators to triage incoming cases, inspect high-resolution receipts side-by-side with OCR tokens, apply manual field corrections, explore cross-complaint relationship graphs, and generate printable Section 65B-ready evidence dossiers and bank debit freeze requisitions.
+- **Deterministic Evidence Verification**:
+  - Rule-based Python verification comparing citizen statements with extracted receipt tokens.
+  - Six explicit semantic outcomes: `MATCH`, `MISMATCH`, `MISSING_IN_COMPLAINT`, `MISSING_IN_EVIDENCE`, `UNABLE_TO_VERIFY`, `MANUAL_REVIEW_REQUIRED`.
+- **Field Correction with Immutable Provenance**:
+  - Authorized officers can correct OCR extraction errors directly in the evidence inspection view.
+  - The system permanently records the pre-correction value, officer identity, timestamp, and audit justification, and automatically recomputes verification consistency findings.
+- **Cross-Complaint Intelligence Graph**:
+  - Automatically indexes suspect UPI VPAs, phone numbers, and bank accounts.
+  - Uncovers multi-victim fraud syndicates sharing common infrastructure across independent complaints.
+  - All associations carry clear statutory notices: technical correlations represent investigative leads, not legal guilt.
+
+---
+
+## 2. Technology Stack
 
 ### Backend
 - **Python**: 3.14.7
-- **FastAPI**: 0.156.0 (High-performance async ASGI web framework)
-- **Uvicorn**: 0.54.0 (Local ASGI server)
-- **Pydantic**: 2.14.1 (Strict data modeling and request validation)
-- **SQLite3**: Standard library, configured with WAL (Write-Ahead Logging) and `PRAGMA foreign_keys = ON`
-- **RapidOCR (rapidocr-onnxruntime)**: 1.2.3 (CPU-optimized ONNX runtime OCR for local screenshot text extraction)
-- **Pillow (PIL)**: 13.0.0 (Image processing, inspection, and synthetic fixture generation)
-- **Pytest**: 9.1.1 (Comprehensive automated test suite)
-- **HTTPX**: 0.28.1 (FastAPI TestClient backend)
+- **FastAPI**: 0.156.0 (High-performance ASGI framework)
+- **Uvicorn**: 0.54.0 (ASGI server)
+- **Database**: SQLite3 with Write-Ahead Logging (`WAL`) and foreign keys enabled
+- **Security**: PBKDF2-HMAC-SHA256 (100,000 rounds) + PyJWT HS256 tokens
+- **OCR Engine**: RapidOCR (`rapidocr-onnxruntime` 1.2.3, CPU/ONNX inference)
+- **Audio & Speech**: `SpeechRecognition` + in-browser 16kHz PCM WAV encoder
+- **Image Processing**: Pillow (`PIL` 13.0.0)
+- **Testing**: Pytest 9.1.1 + HTTPX TestClient (25 automated test cases)
 
 ### Frontend
 - **React**: 19.3.1
-- **TypeScript**: 6.0.3 (Strict compilation with `verbatimModuleSyntax`)
-- **Vite**: 8.3.4 (Modern bundler with live `/api` proxying)
-- **React Router**: 7.18.4 (Client-side routing)
-- **Lucide React**: 1.60.0 (Accessible, restrained iconography)
-- **Design System**: Restrained Civic-Tech CSS tokens (No cyberpunk, no neon glows, 8-pt grid, accessible color contrast)
+- **TypeScript**: 6.0.3 (Strict type checking)
+- **Vite**: 8.3.4 (Fast HMR bundler with `/api` proxying)
+- **Routing**: React Router v7
+- **Icons**: Lucide React
+- **Design Tokens**: Accessible Civic-Tech design system (Brand Teal `#0D9488`, Surface `#FFFFFF`, Background `#F8FAFC`, Border `#E2E8F0`)
 
 ---
 
-## 3. Directory Layout
+## 3. Pre-Provisioned Evaluation Accounts
+
+The platform includes seed accounts for evaluation:
+
+| Role | Portal / Destination | Email | Password |
+| :--- | :--- | :--- | :--- |
+| **Police Officer** | Officer Console (`/officer/login`) | `officer@cybersaarthi.gov.in` | `Officer@CyberSaarthi2026` |
+| **System Admin** | Officer Console (`/officer/login`) | `admin@cybersaarthi.gov.in` | `Admin@CyberSaarthi2026` |
+| **Citizen User** | Citizen Portal (`/citizen/login`) | `citizen@example.com` | `Citizen@CyberSaarthi2026` |
+
+*New citizens can also register directly at `/citizen/register`.*
+
+---
+
+## 4. Quick Start & Execution Guide
+
+### Prerequisites
+- Python 3.10+ (tested on Python 3.14.7 Windows)
+- Node.js 18+ and npm
+- Working directory: `C:\cybersaarthi`
+
+### Step 1: Start the FastAPI Backend
+```powershell
+cd C:\cybersaarthi
+.\backend\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+*Health Check: Open [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health) — returns `{"status":"healthy","database":"connected"}`.*
+
+### Step 2: Start the React Frontend
+```powershell
+cd C:\cybersaarthi\frontend
+npm run dev
+```
+*The Vite frontend binds to [http://localhost:5174](http://localhost:5174) (or [http://localhost:5173](http://localhost:5173)) and automatically proxies all `/api/*` traffic to FastAPI on port 8000.*
+
+---
+
+## 5. Verification & Testing
+
+### Run Backend Automated Tests
+```powershell
+cd C:\cybersaarthi
+.\backend\.venv\Scripts\python.exe -m pytest backend/tests -v
+```
+**Test Results**:
+- `test_api.py`: 7 passed (Health, complaints list, overview metrics, complaint submit, citizen metrics, officer field correction provenance).
+- `test_auth.py`: 6 passed (Officer login, citizen login, portal segregation, credential validation, registration, auth guard).
+- `test_graph.py`: 1 passed (Shared indicator link creation and lead notice).
+- `test_ocr_evaluation.py`: 2 passed (Synthetic receipt OCR benchmark, corrupted file handling).
+- `test_verification.py`: 7 passed (Amount formats, UPI cleanup, Txn ID normalization, match, mismatch, missing evidence/complaint).
+- `test_voice.py`: 2 passed (Silence audio detection, missing audio rejection).
+
+### Run Frontend Production Build
+```powershell
+cd C:\cybersaarthi\frontend
+cmd /c "npm run build"
+```
+*Compiles with zero TypeScript errors and generates optimized production assets.*
+
+---
+
+## 6. Project Directory Structure
 
 ```
 cybersaarthi/
-├── README.md                   # Full documentation & run guide
-├── .gitignore                  # Git ignore rules
-├── .env.example                # Configuration blueprint
-├── cybersaarthi.db             # Local SQLite database
-├── data/
-│   ├── demo_cases.json         # 5 synthetic demonstration scenarios
-│   └── generate_demo_images.py # Pillow script for realistic test receipts
-├── storage/
-│   └── evidence/               # Safe sanitized storage for uploaded receipts
+├── README.md                      # Project documentation and user manual
+├── cybersaarthi.db                # Persistent SQLite database (WAL mode)
 ├── docs/
-│   ├── architecture.md         # Detailed architectural decisions
-│   ├── api-contracts.md        # API request/response contracts
-│   └── test-plan.md            # Formal test specifications
+│   ├── architecture.md            # System architecture and workflows
+│   ├── data-dictionary.md         # Database schema and column dictionary
+│   ├── api-contracts.md           # REST API request/response specifications
+│   ├── security-and-privacy.md    # Security, RBAC, and provenance rules
+│   ├── test-plan.md               # Formal test plan and execution status
+│   └── system-audit.md            # Comprehensive initial repository audit
 ├── backend/
-│   ├── requirements.txt        # Python backend dependencies
-│   ├── pytest.ini             # Pytest configuration
+│   ├── requirements.txt           # Python package requirements
+│   ├── pytest.ini                # Pytest configuration
 │   ├── app/
-│   │   ├── main.py             # FastAPI entrypoint & router assembly
-│   │   ├── core/config.py      # App settings & storage paths
+│   │   ├── main.py                # FastAPI app assembly and CORS setup
+│   │   ├── api/                   # REST API routes (auth, voice, complaints, evidence, overview, graph, reports)
+│   │   ├── core/
+│   │   │   ├── config.py          # Environment settings
+│   │   │   └── security.py        # PBKDF2 hashing, JWT tokens, RBAC dependencies
 │   │   ├── db/
-│   │   │   ├── database.py     # SQLite connection provider
-│   │   │   ├── schema.sql      # DDL database schema
-│   │   │   └── init_db.py      # Idempotent DB initialization
-│   │   ├── schemas/            # Pydantic request/response schemas
-│   │   ├── services/
-│   │   │   ├── field_normalization.py   # Currency, UPI, UTR, date normalizers
-│   │   │   ├── evidence_extraction.py   # RapidOCR wrapper & entity parser
-│   │   │   ├── verification_engine.py   # 6-state consistency verification engine
-│   │   │   ├── intelligence_graph.py    # Cross-complaint indicator linker
-│   │   │   └── report_generation.py     # Investigation-support dossier builder
-│   │   └── api/                # Modular REST route handlers
-│   │       ├── health.py
-│   │       ├── complaints.py
-│   │       ├── evidence.py
-│   │       ├── overview.py
-│   │       ├── graph.py
-│   │       ├── reports.py
-│   │       └── demo.py
-│   └── tests/                  # Backend unit and integration test suite
-│       ├── test_verification.py
-│       ├── test_graph.py
-│       └── test_api.py
+│   │   │   ├── schema.sql         # Database table definitions
+│   │   │   └── init_db.py         # DB migration and seed provisioning
+│   │   ├── schemas/               # Pydantic request/response schemas
+│   │   └── services/              # Core business engines (voice, OCR, verify, graph, report)
+│   └── tests/                     # Automated test suites
 └── frontend/
-    ├── package.json
-    ├── vite.config.ts          # Vite configuration with /api proxy
-    ├── index.html
+    ├── package.json               # Node dependencies
+    ├── vite.config.ts             # Vite bundler & /api proxy configuration
     └── src/
-        ├── App.tsx             # Root router
-        ├── main.tsx
-        ├── styles/             # Civic-tech variables and global styling
-        ├── types/              # Domain TypeScript interfaces
-        ├── services/api.ts     # Frontend REST client
-        ├── components/         # Badges, StatCards, ProvenancePills, Notices
-        ├── layouts/            # Citizen & Officer workspaces
-        └── pages/              # Intake, Overview, Queue, Details, Evidence, Graph, Reports
+        ├── App.tsx                # Client-side router and RBAC route guards
+        ├── components/            # Header, VoiceRecorder, Badges, StatCards, Disclaimers
+        ├── layouts/               # CitizenLayout and OfficerLayout
+        ├── pages/                 # Citizen & Officer workspaces
+        ├── services/api.ts        # Authenticated API client
+        └── types/index.ts         # TypeScript data contracts
 ```
 
 ---
 
-## 4. Synthetic Demonstration Scenarios
+## 7. Statutory Notices & Disclaimers
 
-The platform includes 5 documented synthetic demonstration scenarios:
-
-| Case ID | Incident Category | Stated Claim | Receipt Extraction | Expected Engine Result |
-|---|---|---|---|---|
-| **CS-2026-101** | UPI Electricity Bill Scam | Amount: ₹25,000<br>Txn ID: `UPI309819283741`<br>UPI: `utility.desk@okhdfcbank` | Paid ₹25,000.00<br>UPI Ref: `UPI309819283741`<br>UPI: `utility.desk@okhdfcbank` | **Exact Match (`MATCH`)** across all fields. |
-| **CS-2026-102** | Work From Home Task Scam | Amount: ₹45,000<br>Txn ID: `TXN882910482910` | Paid ₹4,500.00<br>PhonePe receipt | **Amount Conflict (`MISMATCH`)**: Complaint reports ₹45,000 vs receipt showing ₹4,500. (Delta: ₹40,500). Prompts review. |
-| **CS-2026-103** | Impersonation Phishing | Amount: ₹12,500<br>Txn ID: *Omitted by victim* | Paid ₹12,500.00<br>UTR: `409827384912` | **Missing in Complaint (`MISSING_IN_COMPLAINT`)**: Engine captures UTR from receipt to assist victim. |
-| **CS-2026-104** | Fake Courier Delivery Fee | Amount: ₹9,800<br>UPI: `utility.desk@okhdfcbank` | Paid ₹9,800.00<br>UPI: `utility.desk@okhdfcbank` | **Shared Indicator Link**: Shares identical suspect UPI handle with **CS-2026-101**. Connected in Intelligence Graph! |
-| **CS-2026-105** | Social Media Impersonation | Amount: ₹15,000<br>Txn ID: `IMPS998877665544` | Paid ₹15,000.00 | **Unrelated Isolated Case**: 0 shared links. Verifies engine does not produce spurious connections. |
-
----
-
-## 5. Installation & Run Guide (Windows PowerShell)
-
-### Prerequisites
-- Python 3.10+ (Tested on Python 3.14.7)
-- Node.js 18+ & npm (Tested on Node.js 24.21.0 & npm 11.19.0)
-
-### Step 1: Backend Setup & Dependencies
-Open a PowerShell terminal in the project root:
-```powershell
-cd cybersaarthi\backend
-python -m venv .venv
-.\.venv\Scripts\pip.exe install -r requirements.txt
-```
-
-### Step 2: Initialize Database & Demo Fixtures
-Generate demo receipt images and initialize database tables:
-```powershell
-# From cybersaarthi root:
-cd ..
-.\backend\.venv\Scripts\python.exe -m data.generate_demo_images
-.\backend\.venv\Scripts\python.exe -m app.db.init_db
-```
-
-### Step 3: Run Backend Server
-```powershell
-cd backend
-.\.venv\Scripts\uvicorn.exe app.main:app --host 127.0.0.1 --port 8000
-```
-Backend API will be active at: `http://127.0.0.1:8000`  
-Interactive OpenAPI documentation at: `http://127.0.0.1:8000/docs`
-
-### Step 4: Run Frontend Client
-In a second PowerShell window:
-```powershell
-cd cybersaarthi\frontend
-npm.cmd install
-npm.cmd run dev
-```
-Open your browser at: **`http://localhost:5173`**
-
----
-
-## 6. How to Run Automated Tests
-
-To execute the 13 backend unit and integration tests:
-```powershell
-cd cybersaarthi\backend
-.\.venv\Scripts\python.exe -m pytest -v
-```
-
-### Test Results
-```
-tests/test_api.py::test_health_endpoint PASSED                           [  7%]
-tests/test_api.py::test_demo_cases_endpoint PASSED                       [ 15%]
-tests/test_api.py::test_complaints_list_endpoint PASSED                  [ 23%]
-tests/test_api.py::test_overview_metrics_endpoint PASSED                 [ 30%]
-tests/test_api.py::test_submit_complaint PASSED                          [ 38%]
-tests/test_graph.py::test_shared_indicator_creates_link PASSED           [ 46%]
-tests/test_verification.py::test_amount_normalization_formats PASSED     [ 53%]
-tests/test_verification.py::test_upi_normalization PASSED                [ 61%]
-tests/test_verification.py::test_txn_id_normalization PASSED             [ 69%]
-tests/test_verification.py::test_verify_amount_match PASSED              [ 76%]
-tests/test_verification.py::test_verify_amount_mismatch PASSED           [ 84%]
-tests/test_verification.py::test_verify_missing_in_complaint PASSED      [ 92%]
-tests/test_verification.py::test_verify_missing_in_evidence PASSED       [100%]
-======================== 13 passed in 7.64s ========================
-```
-
-To verify the TypeScript frontend compilation:
-```powershell
-cd cybersaarthi\frontend
-npm.cmd run build
-```
-
----
-
-## 7. 3-Minute Hackathon Demonstration Sequence
-
-Follow this sequence to present CyberSaarthi to technical judges:
-
-1. **Intake Flow (`/`)**:
-   - Show the multilingual toggle (English / Hindi / Marathi).
-   - Click **"Scenario 2: Investment Scam (₹45,000)"** in the top preset bar.
-   - Point out that transaction fields are explicitly marked optional.
-   - Click **"Submit Evidence for Verification"**. The backend processes the receipt through RapidOCR and issues official reference `CS-2026-XXXX`.
-   - Click **"Open in Officer Workspace"**.
-
-2. **Evidence Consistency Engine & Traceability (`/officer/complaints/cmp_demo_102`)**:
-   - Show the **Evidence Consistency Verification Matrix**.
-   - Point to the **Red "Discrepancy Conflict" badge**: Citizen claimed ₹45,000, but receipt extraction discovered ₹4,500 (Delta: ₹40,500).
-   - Highlight the non-accusatory explanation: discrepancy does not prove forgery; it prompts the officer to ask whether multiple transfers occurred.
-   - Click **"Inspect Full OCR"** to show the side-by-side evidence review console.
-
-3. **Side-by-Side Review Console (`/officer/evidence`)**:
-   - The original receipt image is rendered on the left.
-   - On the right, show the raw, un-fabricated OCR text string directly from RapidOCR (with 88.5% confidence) and the structured parsed tokens.
-
-4. **Cross-Complaint Intelligence Graph (`/officer/graph`)**:
-   - Navigate to the Intelligence Graph.
-   - Show how **CS-2026-101** (Electricity bill scam) and **CS-2026-104** (Courier delivery scam) are deterministically linked through the shared suspect UPI handle `utility.desk@okhdfcbank`.
-   - Point out that **CS-2026-105** is isolated with 0 links (no hallucinated connections).
-   - Click on the shared indicator node to inspect the provenance and connected complaints.
-   - Highlight the prominent **Investigative Lead Notice**:
-     *"Shared indicator detected. This relationship is an investigative lead and does not establish common ownership or criminal responsibility."*
-
-5. **Investigation Report Dossier (`/officer/reports`)**:
-   - Open the formal dossier report for **CS-2026-101**.
-   - Show that it is clearly labeled as an investigation-support document, NOT a police FIR.
-   - Click **"Print Dossier"** or **"Export JSON"** for export demonstration.
-
----
-
-## 8. Responsible Civic-Tech Disclosures & Limitations
-
-- **Not an Official Police FIR**: CyberSaarthi is an analytic and triage assistant. Official registration of FIRs remains under the jurisdiction of respective police departments and legal portals.
-- **Human-in-the-Loop**: All algorithmic findings (OCR text, matching, graph links) are presented as investigative leads requiring officer verification before taking legal action.
-- **Speech Transcription Fallback**: While designed for multilingual audio intake, when external heavy ASR foundation models (Whisper) are omitted for lightweight CPU execution, the platform provides a full written narrative intake with multilingual script support.
-- **Local Prototype Authentication**: In this prototype, role-based authentication is streamlined to facilitate judge evaluation without login barriers. In production, multi-factor authentication (MFA) and granular audit logging should be enforced.
+1. **National Cybercrime Helpline**:
+   In cases of ongoing financial fraud, victims should immediately dial **1930** (National Cybercrime Reporting Portal, MHA) or report to their home banking branch within the "Golden Hours" to initiate debit freeze protocols.
+2. **Investigative Support Disclaimer**:
+   CyberSaarthi is an investigation-support and evidence triage platform. Automated discrepancy detections, OCR token extractions, and graph links are provided to assist investigating officers; they do not pronounce legal guilt or final judicial disposition.

@@ -1,19 +1,24 @@
 import os
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import FileResponse
 from app.core.config import settings
+from app.core.security import get_optional_user
 from app.db.database import get_connection
 
 router = APIRouter(prefix="/evidence", tags=["Evidence"])
 
 @router.get("/file/{storage_filename}")
-def stream_evidence_file(storage_filename: str):
+def stream_evidence_file(
+    storage_filename: str,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
     """
-    Safely stream uploaded evidence file.
+    Safely streams uploaded evidence file.
     Enforces strict path containment within settings.storage_dir to prevent directory traversal.
+    Enforces authorization check: Citizens can only stream evidence belonging to their own complaints.
     """
-    # Sanitize storage_filename
     safe_name = os.path.basename(storage_filename)
     file_path = (settings.storage_dir / safe_name).resolve()
     
@@ -25,7 +30,28 @@ def stream_evidence_file(storage_filename: str):
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="Evidence file not found.")
 
-    # Determine media type
+    # Authorization check against database
+    conn = get_connection()
+    try:
+        ev = conn.execute(
+            """
+            SELECT ef.id, ef.complaint_id, c.user_id 
+            FROM evidence_files ef
+            JOIN complaints c ON ef.complaint_id = c.id
+            WHERE ef.storage_filename = ?
+            """,
+            (safe_name,)
+        ).fetchone()
+
+        if ev and current_user and current_user.get("role") == "CITIZEN":
+            if ev["user_id"] != current_user["id"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You do not have permission to view evidence from this complaint."
+                )
+    finally:
+        conn.close()
+
     ext = file_path.suffix.lower()
     media_types = {
         ".png": "image/png",
@@ -39,16 +65,36 @@ def stream_evidence_file(storage_filename: str):
     return FileResponse(path=file_path, media_type=media_type)
 
 @router.get("/{evidence_id}")
-def get_evidence_details(evidence_id: str):
+def get_evidence_details(
+    evidence_id: str,
+    current_user: Optional[dict] = Depends(get_optional_user)
+):
     """
     Returns full evidence record including raw OCR text, confidence, and structured fields.
+    Restricts access if the evidence belongs to another citizen.
     """
     conn = get_connection()
     try:
-        ev = conn.execute("SELECT * FROM evidence_files WHERE id = ?", (evidence_id,)).fetchone()
+        ev = conn.execute(
+            """
+            SELECT ef.*, c.user_id, c.reference_id
+            FROM evidence_files ef
+            JOIN complaints c ON ef.complaint_id = c.id
+            WHERE ef.id = ?
+            """,
+            (evidence_id,)
+        ).fetchone()
+        
         if not ev:
             raise HTTPException(status_code=404, detail="Evidence not found.")
-            
+
+        if current_user and current_user.get("role") == "CITIZEN":
+            if ev["user_id"] != current_user["id"]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You do not have permission to inspect this evidence."
+                )
+
         fields = conn.execute(
             "SELECT * FROM extracted_fields WHERE evidence_id = ?",
             (evidence_id,)
@@ -57,13 +103,14 @@ def get_evidence_details(evidence_id: str):
         return {
             "id": ev["id"],
             "complaint_id": ev["complaint_id"],
+            "reference_id": ev["reference_id"],
             "original_filename": ev["original_filename"],
             "storage_filename": ev["storage_filename"],
             "file_type": ev["file_type"],
             "file_size_bytes": ev["file_size_bytes"],
             "ocr_status": ev["ocr_status"],
-            "ocr_confidence": ev["ocr_confidence"],
             "raw_ocr_text": ev["raw_ocr_text"],
+            "ocr_confidence": ev["ocr_confidence"],
             "created_at": ev["created_at"],
             "extracted_fields": [dict(f) for f in fields]
         }

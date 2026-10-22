@@ -7,27 +7,24 @@ import {
   IndianRupee, 
   Clock, 
   ArrowRight, 
-  Sparkles,
-  ExternalLink 
+  Layers, 
+  FileCheck 
 } from 'lucide-react';
-import { fetchOverviewMetrics, fetchDemoCases } from '../services/api';
-import type { OverviewMetrics, DemoCase } from '../types';
+import { fetchOverviewMetrics } from '../services/api';
+import type { OverviewMetrics } from '../types';
 import { StatCard } from '../components/StatCard';
 import { Badge } from '../components/Badge';
-import { DisclaimerNotice } from '../components/DisclaimerNotice';
 
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
-  const [demoCases, setDemoCases] = useState<DemoCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchOverviewMetrics(), fetchDemoCases()])
-      .then(([m, d]) => {
+    fetchOverviewMetrics()
+      .then((m) => {
         setMetrics(m);
-        setDemoCases(d.scenarios);
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -82,12 +79,6 @@ export const OverviewPage: React.FC = () => {
         </Link>
       </div>
 
-      {/* Demo environment banner */}
-      <DisclaimerNotice
-        type="demo"
-        customMessage="This instance contains synthetic demonstration records covering exact match, amount discrepancy, missing UTR, and shared syndicate UPI links for hackathon evaluation."
-      />
-
       {/* Primary Metrics Grid */}
       <div
         style={{
@@ -135,65 +126,114 @@ export const OverviewPage: React.FC = () => {
         />
       </div>
 
-      {/* Quick Judge Evaluation Guide: Fictional Test Scenarios */}
-      {demoCases.length > 0 && (
-        <div
-          style={{
-            backgroundColor: 'var(--surface-primary)',
-            border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.25rem 1.5rem',
-            boxShadow: 'var(--shadow-sm)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--brand-teal)', marginBottom: '0.65rem' }}>
-            <Sparkles size={16} />
-            Pre-Configured Demonstration Test Scenarios
+      {/* Operational Highlights Card */}
+      <div
+        style={{
+          backgroundColor: 'var(--surface-primary)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Layers size={18} color="var(--brand-teal)" />
+            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Quick Investigation Actions & Priority Queues
+            </h2>
           </div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Judges can click any scenario below to immediately inspect the specific verification finding or cross-complaint link:
-          </p>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Real-time triage filters
+          </span>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
-            {demoCases.map((sc, index) => (
-              <div
-                key={sc.id}
-                onClick={() => navigate(`/officer/complaints/${sc.id}`)}
-                style={{
-                  border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.85rem 1rem',
-                  backgroundColor: 'var(--surface-subtle)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  transition: 'border-color 0.15s ease'
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78125rem', fontWeight: 700, color: 'var(--brand-teal)' }}>
-                      {sc.reference_id}
-                    </span>
-                    <Badge status={sc.priority} size="sm" />
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    Scenario {index + 1}: {sc.incident_type}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
-                    {sc.expected_scenario}
-                  </div>
-                </div>
-                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand-teal)' }}>
-                  <span>Inspect Case</span>
-                  <ExternalLink size={12} />
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+          <div
+            onClick={() => navigate('/officer/queue?filter=discrepancies')}
+            style={{
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid #FECACA',
+              backgroundColor: '#FEF2F2',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#991B1B', fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.35rem' }}>
+                <AlertTriangle size={16} />
+                <span>Evidence Discrepancy Queue</span>
               </div>
-            ))}
+              <div style={{ fontSize: '0.78125rem', color: '#7F1D1D', lineHeight: 1.4 }}>
+                {metrics.evidence_needing_manual_review} case(s) where OCR extracted receipt amounts or transaction IDs conflict with complainant statements.
+              </div>
+            </div>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#991B1B', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>Filter Discrepancies</span>
+              <ArrowRight size={12} />
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/officer/graph')}
+            style={{
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid #CCFBF1',
+              backgroundColor: '#F0FDFA',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0F766E', fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.35rem' }}>
+                <Network size={16} />
+                <span>Multi-Victim Syndicate Links</span>
+              </div>
+              <div style={{ fontSize: '0.78125rem', color: '#115E59', lineHeight: 1.4 }}>
+                {metrics.complaints_with_shared_indicators} case(s) sharing common suspect UPI handles, telephone numbers, or beneficiary accounts.
+              </div>
+            </div>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#0F766E', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>Open Intelligence Graph</span>
+              <ArrowRight size={12} />
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/officer/reports')}
+            style={{
+              padding: '1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid #E2E8F0',
+              backgroundColor: '#F8FAFC',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.35rem' }}>
+                <FileCheck size={16} color="var(--brand-teal)" />
+                <span>Investigation Reports</span>
+              </div>
+              <div style={{ fontSize: '0.78125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                Generate printable Section 65B-ready evidence dossiers and bank debit freeze requisition notices.
+              </div>
+            </div>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand-teal)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span>Generate Reports</span>
+              <ArrowRight size={12} />
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Recent Submissions Table */}
       <div
@@ -211,7 +251,7 @@ export const OverviewPage: React.FC = () => {
               Recent Incident Submissions
             </h2>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Showing latest {metrics.recent_submissions.length} reports
+              Showing latest {metrics.recent_submissions.length} reports from database
             </div>
           </div>
           <Link
@@ -242,11 +282,6 @@ export const OverviewPage: React.FC = () => {
                     <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--brand-teal)' }}>
                       {sub.reference_id}
                     </span>
-                    {sub.is_demo && (
-                      <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', backgroundColor: '#EFF6FF', color: '#1E40AF', padding: '0.1rem 0.3rem', borderRadius: '2px' }}>
-                        DEMO
-                      </span>
-                    )}
                   </td>
                   <td>{sub.incident_type}</td>
                   <td className="tabular-nums" style={{ fontWeight: 600 }}>

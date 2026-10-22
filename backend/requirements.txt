@@ -7,3 +7,6 @@ pytest>=8.0.0
 httpx>=0.27.0
 rapidocr-onnxruntime>=1.2.3
 numpy>=1.26.0
+pyjwt>=2.8.0
+SpeechRecognition>=3.14.0
+audioop-lts>=0.2.0

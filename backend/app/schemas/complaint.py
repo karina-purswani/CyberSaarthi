@@ -13,9 +13,17 @@ class ComplaintCreateRequest(BaseModel):
     victim_state: Optional[str] = None
 
 class ReviewNoteRequest(BaseModel):
-    reviewer_name: str
+    reviewer_name: Optional[str] = None
     note: str
     review_status: str
+
+class StatusUpdateRequest(BaseModel):
+    new_status: str
+    reason: Optional[str] = None
+
+class FieldCorrectionRequest(BaseModel):
+    corrected_value: str
+    reason: str
 
 class ComplaintSummaryItem(BaseModel):
     id: str

@@ -107,11 +107,6 @@ export const CaseDetailPage: React.FC = () => {
               </h1>
               <Badge status={complaint.priority} size="md" />
               <Badge status={complaint.status} size="md" />
-              {complaint.is_demo && (
-                <span style={{ fontSize: '0.6875rem', fontWeight: 600, backgroundColor: '#EFF6FF', color: '#1E40AF', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-sm)' }}>
-                  DEMONSTRATION CASE
-                </span>
-              )}
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
               Submitted: {new Date(complaint.submission_time).toLocaleString()} | Category: <strong>{complaint.incident_type}</strong> | Language: <strong>{complaint.language.toUpperCase()}</strong>

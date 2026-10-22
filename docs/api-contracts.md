@@ -1,153 +1,240 @@
-# CyberSaarthi API Contracts & Schemas
+# CyberSaarthi API Contracts & Endpoints
 
-## Base URL
-`/api`
-
----
-
-## 1. System Health
-### `GET /health`
-- **Description**: Verifies backend service status, database connectivity, and OCR engine availability.
-- **Response `200 OK`**:
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "environment": "development",
-  "ocr_engine": "rapidocr",
-  "database": "connected",
-  "timestamp": "2026-10-20T18:30:00Z"
-}
-```
+This document specifies the REST API endpoints, request schemas, response formats, authentication requirements, and HTTP status codes for CyberSaarthi.
 
 ---
 
-## 2. Citizen Intake
-### `POST /complaints/submit`
-- **Content-Type**: `multipart/form-data`
-- **Fields**:
-  - `language`: `str` ("en", "hi", "mr") [default: "en"]
-  - `incident_type`: `str` ("UPI Fraud", "Investment Scam", "Phishing / Identity Theft", "Loan App Extortion", "Other")
-  - `description`: `str` (required, written narrative)
-  - `reported_amount`: `float | null` (optional victim-estimated amount)
-  - `reported_txn_id`: `str | null` (optional victim-provided transaction ID)
-  - `reported_upi_id`: `str | null` (optional victim-provided suspect UPI handle)
-  - `incident_datetime`: `str | null` (optional ISO timestamp or date)
-  - `victim_phone`: `str | null` (optional contact phone)
-  - `victim_state`: `str | null` (optional state/jurisdiction)
-  - `evidence_file`: `UploadFile | null` (screenshot/receipt image: PNG, JPG, WEBP, or audio file)
-- **Response `201 Created`**:
-```json
-{
-  "complaint_reference": "CS-2026-8941",
-  "id": "c71a-45...",
-  "submission_time": "2026-10-20T18:30:00Z",
-  "status": "AWAITING_REVIEW",
-  "evidence_count": 1,
-  "extraction_summary": {
-    "status": "COMPLETED",
-    "extracted_amount": 25000.0,
-    "extracted_txn_id": "UPI29849204920",
-    "extracted_upi_id": "scam.merchant@okhdfcbank"
-  },
-  "verification_summary": {
-    "total_fields_checked": 3,
-    "matches": 3,
-    "mismatches": 0,
-    "missing": 0
+## 1. Authentication Endpoints
+
+### 1.1 Register Citizen Account
+- **Route**: `POST /api/auth/register`
+- **Access**: Public
+- **Request Body**:
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "StrongPassword123",
+    "full_name": "Nikhil Sharma",
+    "phone": "9876543210"
   }
-}
-```
-
----
-
-## 3. Officer Investigation
-### `GET /overview/metrics`
-- **Description**: Aggregate summary counts computed directly from database records.
-- **Response `200 OK`**:
-```json
-{
-  "total_complaints": 12,
-  "awaiting_review": 5,
-  "evidence_needing_manual_review": 2,
-  "complaints_with_shared_indicators": 4,
-  "recent_submissions": [...]
-}
-```
-
-### `GET /complaints`
-- **Query Params**: `status`, `search`, `limit`, `offset`, `priority`
-- **Response `200 OK`**:
-```json
-{
-  "total": 12,
-  "items": [
-    {
-      "id": "uuid",
-      "reference_id": "CS-2026-8941",
-      "submission_time": "2026-10-20T18:30:00Z",
-      "incident_type": "UPI Fraud",
-      "reported_amount": 25000.0,
-      "status": "AWAITING_REVIEW",
-      "priority": "HIGH",
-      "evidence_count": 1,
-      "discrepancy_count": 0,
-      "shared_indicators_count": 2
+  ```
+- **Response** (`201 Created`):
+  ```json
+  {
+    "access_token": "<jwt_string>",
+    "token_type": "bearer",
+    "user": {
+      "id": "usr_9f82ab14d7c3",
+      "email": "user@example.com",
+      "full_name": "Nikhil Sharma",
+      "role": "CITIZEN",
+      "phone": "9876543210",
+      "created_at": "2026-10-22T19:00:00Z"
     }
-  ]
-}
-```
+  }
+  ```
 
-### `GET /complaints/{id}`
-- **Response `200 OK`**: Full complaint details, evidence list, extracted entities, verification findings with provenance, reviewer notes, and shared indicator leads.
-
-### `POST /complaints/{id}/review`
-- **Body**:
-```json
-{
-  "status": "IN_PROGRESS | VERIFIED | CLOSED",
-  "reviewer_note": "Verified bank statement aligns with receipt.",
-  "reviewer_name": "Officer Sharma"
-}
-```
-
----
-
-## 4. Evidence Inspection & Raw Content
-### `GET /evidence/{id}`
-- **Description**: Returns evidence metadata, raw OCR text, bounding boxes (if available), and structured fields.
-
-### `GET /evidence/file/{file_uuid}`
-- **Description**: Secure static file streaming for evidence image inspection.
-
----
-
-## 5. Cross-Complaint Intelligence Graph
-### `GET /graph`
-- **Query Params**: `focus_complaint_id` (optional), `indicator_type` (optional)
-- **Response `200 OK`**:
-```json
-{
-  "nodes": [
-    { "id": "CS-2026-101", "type": "COMPLAINT", "label": "CS-2026-101 (₹25,000)" },
-    { "id": "ind-upi-demo@bank", "type": "INDICATOR", "indicator_type": "UPI_ID", "label": "demo@bank" }
-  ],
-  "edges": [
-    {
-      "id": "e1",
-      "source": "CS-2026-101",
-      "target": "ind-upi-demo@bank",
-      "relation": "CONTAINS_INDICATOR",
-      "reason": "Found in payment receipt extraction",
-      "evidence_id": "ev-uuid"
+### 1.2 User Login
+- **Route**: `POST /api/auth/login`
+- **Access**: Public
+- **Request Body**:
+  ```json
+  {
+    "email": "officer@cybersaarthi.gov.in",
+    "password": "Officer@CyberSaarthi2026",
+    "portal_type": "officer"
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "access_token": "<jwt_string>",
+    "token_type": "bearer",
+    "user": {
+      "id": "usr_officer_shinde",
+      "email": "officer@cybersaarthi.gov.in",
+      "full_name": "Inspector Ramesh Shinde",
+      "role": "OFFICER",
+      "phone": "+91-98200-11930",
+      "created_at": "2026-10-22T00:00:00Z"
     }
-  ],
-  "lead_disclaimer": "Shared indicators represent investigative leads and do not establish common ownership or criminal responsibility."
-}
-```
+  }
+  ```
+- **Error Codes**: `401 Unauthorized` (invalid password/email), `403 Forbidden` (citizen attempting officer login).
+
+### 1.3 Current User Profile
+- **Route**: `GET /api/auth/me`
+- **Header**: `Authorization: Bearer <token>`
+- **Response** (`200 OK`): `User` object.
+
+### 1.4 Change Password
+- **Route**: `POST /api/auth/change-password`
+- **Header**: `Authorization: Bearer <token>`
+- **Request Body**:
+  ```json
+  {
+    "current_password": "CurrentPassword123",
+    "new_password": "NewStrongPassword456"
+  }
+  ```
+- **Response** (`200 OK`): `{"success": true, "message": "Password updated successfully."}`
 
 ---
 
-## 6. Investigation Report
-### `GET /reports/{complaint_id}`
-- **Response `200 OK`**: Fully rendered investigation-support dossier ready for printing or structured JSON download.
+## 2. Voice Transcription Endpoint
+
+### 2.1 Transcribe Audio Statement
+- **Route**: `POST /api/voice/transcribe`
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `audio_file`: Binary audio recording (16kHz PCM WAV format).
+  - `language`: Target speech language code (`en`, `hi`, `mr`).
+- **Response** (`200 OK`):
+  ```json
+  {
+    "success": true,
+    "transcript": "I received a phone call from someone claiming to be an electricity department officer threatening disconnection.",
+    "language": "en",
+    "engine": "SpeechRecognition (Google Speech Engine API)",
+    "duration_seconds": 12.4
+  }
+  ```
+- **Error Codes**: `400 Bad Request` (silence detected, unintelligible audio), `413 Payload Too Large`.
+
+---
+
+## 3. Complaint Ingestion & Retrieval
+
+### 3.1 Submit Complaint
+- **Route**: `POST /api/complaints/submit`
+- **Content-Type**: `multipart/form-data`
+- **Header**: `Authorization: Bearer <token>` (optional; links to user if provided)
+- **Form Fields**:
+  - `language`: `en` | `hi` | `mr`
+  - `incident_type`: string
+  - `description`: string (written or transcribed voice statement)
+  - `reported_amount`: float string (e.g. `"45000"`)
+  - `reported_txn_id`: string (claimed UTR / Txn reference)
+  - `reported_upi_id`: string (claimed suspect UPI handle)
+  - `incident_datetime`: string
+  - `victim_phone`: string
+  - `victim_state`: string
+  - `evidence_file`: File (optional receipt screenshot)
+- **Response** (`201 Created`):
+  ```json
+  {
+    "success": true,
+    "complaint_id": "cmp_8d91a27b",
+    "reference_id": "CR-2026-0312-9842",
+    "message": "Complaint successfully registered."
+  }
+  ```
+
+### 3.2 List Complaints
+- **Route**: `GET /api/complaints`
+- **Header**: `Authorization: Bearer <token>`
+- **Query Parameters**:
+  - `search`: string filter
+  - `status`: string filter
+  - `priority`: string filter
+  - `limit`: int (default 50)
+  - `offset`: int (default 0)
+- **Behavior**: If caller is a `CITIZEN`, results are strictly filtered to complaints filed by their account.
+- **Response** (`200 OK`):
+  ```json
+  {
+    "total": 35,
+    "items": [
+      {
+        "id": "cmp_8d91a27b",
+        "reference_id": "CR-2026-0312-9842",
+        "submission_time": "2026-10-22T14:30:00Z",
+        "incident_type": "UPI Fraud",
+        "reported_amount": 45000.0,
+        "evidence_count": 1,
+        "status": "VERIFIED",
+        "priority": "HIGH"
+      }
+    ]
+  }
+  ```
+
+### 3.3 Get Complaint Detail
+- **Route**: `GET /api/complaints/{id}`
+- **Header**: `Authorization: Bearer <token>`
+- **Behavior**: If caller is a `CITIZEN`, internal officer notes and cross-case leads are redacted.
+- **Response** (`200 OK`):
+  ```json
+  {
+    "complaint": { ... },
+    "evidence_files": [ ... ],
+    "extracted_fields": [ ... ],
+    "verification_findings": [ ... ],
+    "status_history": [ ... ],
+    "reviewer_notes": [ ... ],
+    "related_leads": [ ... ]
+  }
+  ```
+
+---
+
+## 4. Evidence Inspection & Field Correction
+
+### 4.1 Get Evidence Details
+- **Route**: `GET /api/evidence/{id}`
+- **Header**: `Authorization: Bearer <token>`
+- **Response** (`200 OK`): Returns original filename, storage filename, OCR confidence, raw OCR text, and extracted fields.
+
+### 4.2 Stream Evidence File Image
+- **Route**: `GET /api/evidence/file/{filename}`
+- **Access**: Protected by path containment; returns image byte stream.
+
+### 4.3 Correct Extracted Field (Officer Only)
+- **Route**: `POST /api/complaints/{complaint_id}/evidence/{evidence_id}/fields/{field_id}/correct`
+- **Header**: `Authorization: Bearer <token>` (Role: `OFFICER` or `ADMIN`)
+- **Request Body**:
+  ```json
+  {
+    "corrected_value": "45000.00",
+    "reason": "OCR misread '0' as '8' due to font artifact on receipt screenshot."
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "success": true,
+    "field_id": "ef_12345",
+    "is_officer_corrected": true,
+    "corrected_value": "45000.00",
+    "original_value": "45800.00",
+    "reason": "OCR misread '0' as '8' due to font artifact on receipt screenshot.",
+    "corrected_by": "usr_officer_shinde",
+    "message": "Field corrected and verification re-evaluated."
+  }
+  ```
+
+---
+
+## 5. Intelligence Graph & Reporting
+
+### 5.1 Fetch Intelligence Graph
+- **Route**: `GET /api/graph`
+- **Header**: `Authorization: Bearer <token>` (Officer Only)
+- **Query Parameters**: `focus_complaint_id`, `indicator_type`
+- **Response** (`200 OK`):
+  ```json
+  {
+    "nodes": [
+      { "id": "cmp_1", "type": "COMPLAINT", "label": "CR-2026-0312-9842" },
+      { "id": "ind_1", "type": "INDICATOR", "label": "fraudster@upi", "indicator_type": "UPI_ID" }
+    ],
+    "edges": [
+      { "source": "cmp_1", "target": "ind_1", "label": "SHARES_UPI_ID" }
+    ]
+  }
+  ```
+
+### 5.2 Fetch Investigation Report Dossier
+- **Route**: `GET /api/reports/{id}`
+- **Header**: `Authorization: Bearer <token>` (Officer Only)
+- **Response** (`200 OK`): Formatted Section 65B dossier with complaint summary, verification matrix, attached evidence list, and formal bank freeze requisition draft.

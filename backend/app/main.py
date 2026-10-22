@@ -4,14 +4,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.init_db import init_db
-from app.db.database import get_connection
 from app.api.health import router as health_router
+from app.api.auth import router as auth_router
+from app.api.voice import router as voice_router
 from app.api.complaints import router as complaints_router
 from app.api.evidence import router as evidence_router
 from app.api.overview import router as overview_router
 from app.api.graph import router as graph_router
 from app.api.reports import router as reports_router
-from app.api.demo import router as demo_router, seed_demo_data
+from app.api.demo import router as demo_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,20 +22,10 @@ logger = logging.getLogger("cybersaarthi")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables exist
-    logger.info("Initializing CyberSaarthi database...")
+    # Startup: ensure tables exist and migrations are applied
+    logger.info("Initializing CyberSaarthi database and verifying schema...")
     init_db()
-    
-    # Auto-seed if database has 0 complaints
-    conn = get_connection()
-    try:
-        count = conn.execute("SELECT COUNT(*) FROM complaints").fetchone()[0]
-        if count == 0:
-            logger.info("Database empty. Seeding initial demonstration scenarios...")
-            seed_demo_data()
-    finally:
-        conn.close()
-        
+    logger.info("CyberSaarthi backend startup complete. Zero auto-seeded demo records on fresh database.")
     yield
     logger.info("CyberSaarthi backend shutting down.")
 
@@ -56,6 +47,8 @@ app.add_middleware(
 
 # Include API routes under /api
 app.include_router(health_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
+app.include_router(voice_router, prefix="/api")
 app.include_router(complaints_router, prefix="/api")
 app.include_router(evidence_router, prefix="/api")
 app.include_router(overview_router, prefix="/api")
