@@ -146,7 +146,13 @@ export const OfficerLoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-light)' }}>
+        <div style={{ textAlign: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            Need to provision a new officer or investigator?{' '}
+            <Link to="/officer/register" style={{ color: '#1E40AF', fontWeight: 600 }}>
+              Provision Officer Account
+            </Link>
+          </p>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
             Are you a citizen filing a complaint?{' '}
             <Link to="/citizen/login" style={{ color: 'var(--brand-teal)', fontWeight: 600 }}>

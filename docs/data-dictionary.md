@@ -122,7 +122,10 @@ Deterministic comparison findings evaluating citizen claims against OCR receipt 
 | `field_name` | `TEXT` | No | No | — | Entity evaluated (`'amount'`, `'txn_id'`, `'upi_id'`) |
 | `complaint_value` | `TEXT` | Yes | No | `NULL` | Complainant stated value |
 | `evidence_value` | `TEXT` | Yes | No | `NULL` | Receipt extracted value |
-| `result` | `TEXT` | No | No | — | Consistency status code |
+| `normalized_complaint_value` | `TEXT` | Yes | No | `NULL` | Normalized canonical representation |
+| `normalized_evidence_value` | `TEXT` | Yes | No | `NULL` | Normalized canonical representation |
+| `result` | `TEXT` | No | No | — | 6-state engine result code (`MATCH`, `MISMATCH`, `MISSING_IN_COMPLAINT`, `MISSING_IN_EVIDENCE`, `UNABLE_TO_VERIFY`, `MANUAL_REVIEW_REQUIRED`) |
+| `display_status` | `TEXT` | Yes | No | `NULL` | 3-state human readable mapping (`Consistent`, `Inconsistent`, `Insufficient Data`) |
 | `reason` | `TEXT` | No | No | — | Factual rule-based justification |
 | `review_recommendation` | `TEXT` | No | No | — | Operational advisory for officer |
 | `created_at` | `TEXT` | No | No | `CURRENT_TIMESTAMP` | Verification timestamp |

@@ -10,3 +10,5 @@ numpy>=1.26.0
 pyjwt>=2.8.0
 SpeechRecognition>=3.14.0
 audioop-lts>=0.2.0
+reportlab>=4.0.0
+pypdf>=5.0.0

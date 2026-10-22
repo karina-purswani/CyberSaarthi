@@ -68,3 +68,59 @@ def test_citizen_registration_and_me():
 def test_auth_me_unauthorized():
     res = client.get("/api/auth/me")
     assert res.status_code == 401
+
+def test_officer_provisioning_with_admin_key():
+    import uuid
+    rand_email = f"officer_{uuid.uuid4().hex[:8]}@cybersaarthi.gov.in"
+    res = client.post("/api/auth/officer/provision", json={
+        "email": rand_email,
+        "password": "OfficerPassword2026!",
+        "full_name": "Sub-Inspector Anita Desai",
+        "badge_number": "MH-CYBER-5501",
+        "department": "Cyber Crime Cell Thane",
+        "phone": "9820011223",
+        "role": "OFFICER",
+        "admin_key": "CyberSaarthiOfficerSetup2026"
+    })
+    assert res.status_code == 201
+    data = res.json()
+    assert "access_token" in data
+    assert data["user"]["role"] == "OFFICER"
+    assert data["user"]["email"] == rand_email
+    assert data["user"]["badge_number"] == "MH-CYBER-5501"
+
+    # Test that newly provisioned officer can log in to the officer portal
+    login_res = client.post("/api/auth/login", json={
+        "email": rand_email,
+        "password": "OfficerPassword2026!",
+        "portal_type": "officer"
+    })
+    assert login_res.status_code == 200
+
+def test_officer_provisioning_unauthorized():
+    import uuid
+    rand_email = f"fake_{uuid.uuid4().hex[:8]}@police.gov.in"
+    res = client.post("/api/auth/officer/provision", json={
+        "email": rand_email,
+        "password": "SomePassword123!",
+        "full_name": "Unauthorized Actor",
+        "admin_key": "WrongInvalidCode"
+    })
+    assert res.status_code == 403
+    assert "administrative authorization" in res.json()["detail"].lower()
+
+def test_list_system_users_officer_access():
+    login_res = client.post("/api/auth/login", json={
+        "email": "officer@cybersaarthi.gov.in",
+        "password": "Officer@CyberSaarthi2026",
+        "portal_type": "officer"
+    })
+    token = login_res.json()["access_token"]
+    res = client.get("/api/auth/users", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    users = res.json()
+    assert isinstance(users, list)
+    assert len(users) >= 2
+    emails = [u["email"] for u in users]
+    assert "officer@cybersaarthi.gov.in" in emails
+

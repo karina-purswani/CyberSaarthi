@@ -30,3 +30,14 @@ class TokenResponse(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8)
+
+class ProvisionOfficerRequest(BaseModel):
+    email: str = Field(..., description="Official law enforcement or agency email")
+    password: str = Field(..., min_length=8, description="Minimum 8 characters")
+    full_name: str = Field(..., min_length=2, description="Officer's full name")
+    badge_number: Optional[str] = Field(None, description="Official badge or service ID")
+    department: Optional[str] = Field(None, description="Police station or investigative unit")
+    phone: Optional[str] = Field(None, description="Contact phone number")
+    role: Optional[str] = Field("OFFICER", description="'OFFICER' or 'ADMIN'")
+    admin_key: Optional[str] = Field(None, description="Administrative authorization code for onboarding")
+

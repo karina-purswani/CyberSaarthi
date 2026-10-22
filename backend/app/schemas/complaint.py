@@ -49,3 +49,30 @@ class OverviewMetrics(BaseModel):
     complaints_with_shared_indicators: int
     total_amount_reported: float
     recent_submissions: List[Dict[str, Any]]
+
+class ImportPreviewItem(BaseModel):
+    row_number: int
+    data: Dict[str, Any]
+    is_valid: bool
+    is_duplicate: bool
+    errors: List[str]
+    duplicate_reason: Optional[str] = None
+
+class ImportPreviewResponse(BaseModel):
+    total_records: int
+    valid_records: int
+    duplicate_records: int
+    invalid_records: int
+    records: List[ImportPreviewItem]
+
+class ImportExecuteRequest(BaseModel):
+    records: List[Dict[str, Any]]
+    skip_duplicates: bool = True
+
+class ImportExecuteResponse(BaseModel):
+    success: bool
+    imported_count: int
+    skipped_count: int
+    rejected_count: int
+    imported_reference_ids: List[str]
+    errors: List[str]

@@ -1,14 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Inbox, FileSearch, Network, FileCheck, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Inbox, FileSearch, Network, FileCheck, ShieldAlert, UploadCloud, Users } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/officer', label: 'Overview', icon: <LayoutDashboard size={18} />, end: true },
     { to: '/officer/queue', label: 'Complaint Queue', icon: <Inbox size={18} /> },
+    { to: '/officer/import', label: 'Batch Import (CSV/JSON)', icon: <UploadCloud size={18} /> },
     { to: '/officer/evidence', label: 'Evidence Review', icon: <FileSearch size={18} /> },
     { to: '/officer/graph', label: 'Intelligence Graph', icon: <Network size={18} /> },
-    { to: '/officer/reports', label: 'Investigation Reports', icon: <FileCheck size={18} /> }
+    { to: '/officer/reports', label: 'Investigation Reports', icon: <FileCheck size={18} /> },
+    { to: '/officer/users', label: 'User Administration', icon: <Users size={18} /> }
   ];
 
   return (

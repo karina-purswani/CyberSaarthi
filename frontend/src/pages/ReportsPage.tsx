@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Printer, Download, ArrowLeft, Shield } from 'lucide-react';
-import { fetchInvestigationReport, fetchComplaints } from '../services/api';
+import { fetchInvestigationReport, fetchComplaints, downloadReportPdf } from '../services/api';
 import type { ComplaintSummary } from '../types';
 import { DisclaimerNotice } from '../components/DisclaimerNotice';
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge';
@@ -38,6 +38,26 @@ export const ReportsPage: React.FC = () => {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [selectedId]);
+
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!selectedId || !report) return;
+    setExportingPdf(true);
+    try {
+      const blob = await downloadReportPdf(selectedId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CyberSaarthi_Dossier_${report.complaint.reference_id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Failed to export PDF: ' + err.message);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   const handleDownloadJSON = () => {
     if (!report) return;
@@ -98,6 +118,26 @@ export const ReportsPage: React.FC = () => {
           </select>
 
           <button
+            onClick={handleDownloadPDF}
+            disabled={exportingPdf || !report}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: 'var(--brand-teal)',
+              color: '#FFFFFF',
+              padding: '0.5rem 0.85rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: exportingPdf ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <Download size={14} />
+            <span>{exportingPdf ? 'Exporting PDF...' : 'Export PDF'}</span>
+          </button>
+
+          <button
             onClick={handleDownloadJSON}
             style={{
               display: 'flex',
@@ -122,8 +162,9 @@ export const ReportsPage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              backgroundColor: 'var(--brand-teal)',
-              color: '#FFFFFF',
+              backgroundColor: 'var(--surface-secondary, #E2E8F0)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-light)',
               padding: '0.5rem 0.85rem',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.8125rem',

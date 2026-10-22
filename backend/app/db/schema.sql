@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS verification_findings (
     normalized_complaint_value TEXT,
     normalized_evidence_value TEXT,
     result TEXT NOT NULL,
+    display_status TEXT,
     reason TEXT NOT NULL,
     review_recommendation TEXT NOT NULL,
     created_at TEXT NOT NULL,

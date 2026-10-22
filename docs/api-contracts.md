@@ -220,21 +220,115 @@ This document specifies the REST API endpoints, request schemas, response format
 ### 5.1 Fetch Intelligence Graph
 - **Route**: `GET /api/graph`
 - **Header**: `Authorization: Bearer <token>` (Officer Only)
-- **Query Parameters**: `focus_complaint_id`, `indicator_type`
+- **Query Parameters**:
+  - `focus_complaint_id`: Target complaint ID to isolate 1-hop neighborhood.
+  - `indicator_type`: Legacy filter for specific indicator type (`UPI_ID`, `PHONE_NUMBER`, `TRANSACTION_ID`).
+  - `category`: Entity filter (`COMPLAINT`, `EVIDENCE`, `PERSON`, `UPI_ID`, `PHONE_NUMBER`, `TRANSACTION_ID`, `BANK_ACCOUNT`, `IP_ADDRESS`).
+  - `relationship_type`: Edge classification (`DIRECT_OBSERVED`, `INVESTIGATIVE_LEAD`, `EVIDENCE_LINK`).
+  - `search`: Case reference ID, indicator string, or victim name query.
 - **Response** (`200 OK`):
   ```json
   {
     "nodes": [
-      { "id": "cmp_1", "type": "COMPLAINT", "label": "CR-2026-0312-9842" },
-      { "id": "ind_1", "type": "INDICATOR", "label": "fraudster@upi", "indicator_type": "UPI_ID" }
+      { "id": "cmp_1", "type": "COMPLAINT", "category": "COMPLAINT", "label": "CR-2026-0312-9842" },
+      { "id": "ind_1", "type": "INDICATOR", "category": "UPI_ID", "label": "fraudster@upi", "indicator_type": "UPI_ID" }
     ],
     "edges": [
-      { "source": "cmp_1", "target": "ind_1", "label": "SHARES_UPI_ID" }
+      {
+        "id": "rel_1",
+        "source": "cmp_1",
+        "target": "ind_1",
+        "relation": "SHARED_INDICATOR",
+        "relationship_type": "INVESTIGATIVE_LEAD",
+        "rule_applied": "CITIZEN_REPORTED_UPI_MATCH",
+        "explanation": "Citizen reported UPI handle matches syndicate account"
+      }
+    ],
+    "clusters": [ ... ],
+    "lead_disclaimer": "Statutory non-accusatory notice..."
+  }
+  ```
+
+### 5.2 Fetch Investigation Report Dossier (JSON)
+- **Route**: `GET /api/reports/{id}`
+- **Header**: `Authorization: Bearer <token>` (Officer Only)
+- **Response** (`200 OK`): Formatted Section 65B dossier with complaint summary, verification matrix, attached evidence list, and formal bank freeze requisition draft.
+
+### 5.3 Export Investigation Report PDF
+- **Route**: `GET /api/reports/{id}/pdf`
+- **Header**: `Authorization: Bearer <token>` (Officer or Owner Citizen)
+- **Response** (`200 OK`):
+  - **Headers**:
+    - `Content-Type: application/pdf`
+    - `Content-Disposition: attachment; filename="CyberSaarthi_Dossier_<REFERENCE_ID>.pdf"`
+  - **Body**: Server-generated binary PDF bytes with running headers, page numbers ("Page X of Y"), Section 65B compliance note, evidence inventory, and consistency matrix.
+
+---
+
+## 6. Batch Complaint Ingestion & Evidence Attachment
+
+### 6.1 Preview Batch Ingestion File
+- **Route**: `POST /api/complaints/import/preview`
+- **Header**: `Authorization: Bearer <token>` (Officer / Admin Only)
+- **Content-Type**: `multipart/form-data` (`file`: CSV or JSON)
+- **Response** (`200 OK`):
+  ```json
+  {
+    "total_records": 10,
+    "valid_records": 9,
+    "error_records": 1,
+    "duplicate_records": 1,
+    "format": "csv",
+    "preview": [
+      {
+        "row_number": 1,
+        "is_valid": true,
+        "is_duplicate": false,
+        "errors": [],
+        "data": { "incident_type": "UPI Fraud", "description": "...", "reported_amount": 15000.0 }
+      }
     ]
   }
   ```
 
-### 5.2 Fetch Investigation Report Dossier
-- **Route**: `GET /api/reports/{id}`
-- **Header**: `Authorization: Bearer <token>` (Officer Only)
-- **Response** (`200 OK`): Formatted Section 65B dossier with complaint summary, verification matrix, attached evidence list, and formal bank freeze requisition draft.
+### 6.2 Execute Batch Ingestion
+- **Route**: `POST /api/complaints/import/execute`
+- **Header**: `Authorization: Bearer <token>` (Officer / Admin Only)
+- **Content-Type**: `application/json`
+- **Request Body**:
+  ```json
+  {
+    "records": [ { "incident_type": "UPI Fraud", "description": "..." } ],
+    "skip_duplicates": true
+  }
+  ```
+- **Response** (`200 OK`):
+  ```json
+  {
+    "total": 1,
+    "imported": 1,
+    "skipped": 0,
+    "rejected": 0,
+    "created_ids": ["cmp_984128471204"],
+    "reference_ids": ["CR-2026-1022-9482"],
+    "errors": []
+  }
+  ```
+
+### 6.3 Attach Evidence to Existing Case
+- **Route**: `POST /api/complaints/{complaint_id}/evidence`
+- **Header**: `Authorization: Bearer <token>` (Officer or Owner Citizen)
+- **Content-Type**: `multipart/form-data` (`file`: PNG/JPEG/WEBP/PDF)
+- **Response** (`200 OK`):
+  ```json
+  {
+    "success": true,
+    "evidence_id": "ev_482910482910",
+    "storage_filename": "uuid.png",
+    "original_filename": "receipt_screenshot.png",
+    "ocr_status": "COMPLETED",
+    "extracted_fields": 3,
+    "message": "Evidence successfully processed and consistency verification updated."
+  }
+  ```
+

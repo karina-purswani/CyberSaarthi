@@ -24,6 +24,9 @@ import { CaseDetailPage } from './pages/CaseDetailPage';
 import { EvidenceReviewPage } from './pages/EvidenceReviewPage';
 import { GraphPage } from './pages/GraphPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { ImportPage } from './pages/ImportPage';
+import { OfficerRegisterPage } from './pages/OfficerRegisterPage';
+import { UserAdminPage } from './pages/UserAdminPage';
 
 // Route Guards
 const RequireCitizen: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -57,6 +60,7 @@ export function App() {
         <Route path="/citizen/login" element={<CitizenLoginPage />} />
         <Route path="/citizen/register" element={<CitizenRegisterPage />} />
         <Route path="/officer/login" element={<OfficerLoginPage />} />
+        <Route path="/officer/register" element={<OfficerRegisterPage />} />
 
         {/* Citizen Portal (Protected for Citizens) */}
         <Route
@@ -90,6 +94,8 @@ export function App() {
           <Route path="graph" element={<GraphPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="reports/:id" element={<ReportsPage />} />
+          <Route path="import" element={<ImportPage />} />
+          <Route path="users" element={<UserAdminPage />} />
         </Route>
 
         {/* Legacy redirect */}

@@ -93,9 +93,43 @@ export interface VerificationFinding {
   normalized_complaint_value: string | null;
   normalized_evidence_value: string | null;
   result: VerificationResultType;
+  display_status?: 'Consistent' | 'Inconsistent' | 'Insufficient Data' | string;
+  source_evidence?: string | null;
   reason: string;
   review_recommendation: string;
   created_at: string;
+}
+
+export interface ImportPreviewRecord {
+  row_number: number;
+  is_valid: boolean;
+  errors: string[];
+  is_duplicate: boolean;
+  data: Record<string, any>;
+}
+
+export interface ImportPreviewResponse {
+  total_records: number;
+  valid_records: number;
+  error_records: number;
+  duplicate_records: number;
+  preview: ImportPreviewRecord[];
+  format: string;
+}
+
+export interface ImportExecuteRequest {
+  records: Array<Record<string, any>>;
+  skip_duplicates?: boolean;
+}
+
+export interface ImportExecuteResponse {
+  total: number;
+  imported: number;
+  skipped: number;
+  rejected: number;
+  created_ids: string[];
+  reference_ids: string[];
+  errors: string[];
 }
 
 export interface ReviewerNote {
@@ -161,16 +195,19 @@ export interface ComplaintDetail {
 
 export interface GraphNode {
   id: string;
-  type: 'COMPLAINT' | 'INDICATOR';
+  type: string;
+  category?: string;
   label: string;
   reference_id?: string;
   incident_type?: string;
   amount?: number | null;
   status?: string;
   priority?: string;
-  indicator_type?: 'UPI_ID' | 'PHONE_NUMBER' | 'TRANSACTION_ID';
+  indicator_type?: string;
   raw_value?: string;
   normalized_value?: string;
+  details?: Record<string, any>;
+  source_evidence?: string | null;
 }
 
 export interface GraphEdge {
@@ -178,10 +215,13 @@ export interface GraphEdge {
   source: string;
   target: string;
   relation: string;
+  relationship_type?: string;
   rule_applied: string;
+  basis_rule?: string;
   explanation: string;
   evidence_id: string | null;
   evidence_filename: string | null;
+  source_evidence?: string | null;
 }
 
 export interface GraphCluster {

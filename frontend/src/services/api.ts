@@ -91,6 +91,40 @@ export async function registerCitizen(payload: {
   return data;
 }
 
+export async function provisionOfficer(payload: {
+  email: string;
+  password: string;
+  full_name: string;
+  badge_number?: string;
+  department?: string;
+  phone?: string;
+  role?: string;
+  admin_key?: string;
+}): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/auth/officer/provision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ detail: 'Officer provisioning failed' }));
+    throw new Error(errorData.detail || 'Officer provisioning failed.');
+  }
+  const data: AuthResponse = await res.json();
+  return data;
+}
+
+export async function fetchSystemUsers(): Promise<User[]> {
+  const res = await fetch(`${API_BASE}/auth/users`, {
+    headers: authHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to load system users');
+  return res.json();
+}
+
 export async function fetchCurrentUser(): Promise<User> {
   const res = await fetch(`${API_BASE}/auth/me`, {
     headers: authHeaders()
@@ -275,6 +309,59 @@ export async function correctExtractedField(
   return res.json();
 }
 
+export async function uploadCaseEvidence(complaintId: string, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/complaints/${encodeURIComponent(complaintId)}/evidence`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to upload evidence' }));
+    throw new Error(err.detail || 'Evidence upload failed');
+  }
+  return res.json();
+}
+
+// --- Import Endpoints ---
+
+export async function previewImportComplaints(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${API_BASE}/complaints/import/preview`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Import preview failed' }));
+    throw new Error(err.detail || 'Failed to preview import file');
+  }
+  return res.json();
+}
+
+export async function executeImportComplaints(payload: {
+  records: Array<Record<string, any>>;
+  skip_duplicates?: boolean;
+}) {
+  const res = await fetch(`${API_BASE}/complaints/import/execute`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Import execution failed' }));
+    throw new Error(err.detail || 'Failed to execute import');
+  }
+  return res.json();
+}
+
 // --- Evidence & Graph Endpoints ---
 
 export async function fetchEvidenceDetail(evidenceId: string) {
@@ -292,10 +379,16 @@ export function getEvidenceFileUrl(storageFilename: string): string {
 export async function fetchGraph(params?: {
   focus_complaint_id?: string;
   indicator_type?: string;
+  category?: string;
+  relationship_type?: string;
+  search?: string;
 }): Promise<GraphData> {
   const query = new URLSearchParams();
   if (params?.focus_complaint_id) query.append('focus_complaint_id', params.focus_complaint_id);
   if (params?.indicator_type) query.append('indicator_type', params.indicator_type);
+  if (params?.category) query.append('category', params.category);
+  if (params?.relationship_type) query.append('relationship_type', params.relationship_type);
+  if (params?.search) query.append('search', params.search);
 
   const res = await fetch(`${API_BASE}/graph?${query.toString()}`, {
     headers: authHeaders()
@@ -310,4 +403,15 @@ export async function fetchInvestigationReport(complaintId: string) {
   });
   if (!res.ok) throw new Error('Failed to load investigation report');
   return res.json();
+}
+
+export async function downloadReportPdf(complaintId: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/reports/${encodeURIComponent(complaintId)}/pdf`, {
+    headers: authHeaders()
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'PDF generation failed' }));
+    throw new Error(err.detail || 'Failed to download investigation report PDF');
+  }
+  return res.blob();
 }

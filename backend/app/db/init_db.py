@@ -31,6 +31,11 @@ def run_migrations(conn):
     if "reviewer_user_id" not in rn_cols:
         conn.execute("ALTER TABLE reviewer_notes ADD COLUMN reviewer_user_id TEXT")
 
+    # 4. Check verification_findings table columns
+    vf_cols = [row[1] for row in conn.execute("PRAGMA table_info(verification_findings)").fetchall()]
+    if "display_status" not in vf_cols:
+        conn.execute("ALTER TABLE verification_findings ADD COLUMN display_status TEXT")
+
 def seed_default_accounts(conn):
     """
     Provisions standard development/prototype roles if not present.

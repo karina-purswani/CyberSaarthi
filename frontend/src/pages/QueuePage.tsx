@@ -46,13 +46,33 @@ export const QueuePage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem' }}>
-      <div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-          Complaint Queue & Case Triage
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-          Filter and inspect citizen incident reports with real-time discrepancy indicators.
-        </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            Complaint Queue & Case Triage
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
+            Filter and inspect citizen incident reports with real-time discrepancy indicators.
+          </p>
+        </div>
+
+        <Link
+          to="/officer/import"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            backgroundColor: 'var(--brand-teal)',
+            color: '#FFFFFF',
+            padding: '0.5rem 0.9rem',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            textDecoration: 'none'
+          }}
+        >
+          <span>Batch Ingestion (CSV / JSON)</span>
+        </Link>
       </div>
 
       {/* Filter and Search Bar */}
