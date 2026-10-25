@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { Printer, Download, ArrowLeft, Shield } from 'lucide-react';
-import { fetchInvestigationReport, fetchComplaints, downloadReportPdf } from '../services/api';
+import { Printer, Download, ArrowLeft, Mail, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { fetchInvestigationReport, fetchComplaints, downloadReportPdf, emailComplaintReport, fetchEmailConfig } from '../services/api';
 import type { ComplaintSummary } from '../types';
 import { DisclaimerNotice } from '../components/DisclaimerNotice';
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge';
@@ -14,6 +14,13 @@ export const ReportsPage: React.FC = () => {
   const [report, setReport] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [emailConfig, setEmailConfig] = useState<{ test_recipient_email: string; smtp_configured: boolean } | null>(null);
+
+  useEffect(() => {
+    fetchEmailConfig().then(cfg => setEmailConfig(cfg)).catch(() => {});
+  }, []);
 
   // Load complaints list for selector
   useEffect(() => {
@@ -74,6 +81,28 @@ export const ReportsPage: React.FC = () => {
     window.print();
   };
 
+  const handleEmailDossier = async () => {
+    if (!selectedId || !report) return;
+    setSendingEmail(true);
+    setEmailFeedback(null);
+    try {
+      const res = await emailComplaintReport(selectedId);
+      setEmailFeedback({
+        type: 'success',
+        message: res.message
+      });
+    } catch (err: any) {
+      setEmailFeedback({
+        type: 'error',
+        message: err.message || 'Failed to dispatch report by email.'
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const configuredRecipient = emailConfig?.test_recipient_email || 'purswani2276@gmail.com';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem', maxWidth: '900px', margin: '0 auto' }}>
       
@@ -100,7 +129,7 @@ export const ReportsPage: React.FC = () => {
           </h1>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {/* Case selector */}
           <select
             value={selectedId}
@@ -135,6 +164,28 @@ export const ReportsPage: React.FC = () => {
           >
             <Download size={14} />
             <span>{exportingPdf ? 'Exporting PDF...' : 'Export PDF'}</span>
+          </button>
+
+          <button
+            onClick={handleEmailDossier}
+            disabled={sendingEmail || !report}
+            title={`Email to configured demonstration inbox (${configuredRecipient})`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: 'var(--surface-primary)',
+              border: '1px solid var(--brand-teal)',
+              color: 'var(--brand-teal)',
+              padding: '0.5rem 0.85rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: sendingEmail ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {sendingEmail ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
+            <span>{sendingEmail ? 'Dispatching...' : 'Email Dossier'}</span>
           </button>
 
           <button
@@ -177,6 +228,33 @@ export const ReportsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Email feedback alert */}
+      {emailFeedback && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: emailFeedback.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+          border: `1px solid ${emailFeedback.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+          color: emailFeedback.type === 'success' ? '#065F46' : '#991B1B',
+          fontSize: '0.8125rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {emailFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{emailFeedback.message}</span>
+          </div>
+          <button
+            onClick={() => setEmailFeedback(null)}
+            style={{ cursor: 'pointer', padding: '0.1rem 0.3rem', fontSize: '0.75rem', color: 'inherit' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {loading && <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Generating report dossier...</div>}
       {error && <div style={{ padding: '1.5rem', color: '#991B1B', backgroundColor: '#FEF2F2' }}>{error}</div>}
 
@@ -198,9 +276,11 @@ export const ReportsPage: React.FC = () => {
           {/* Document Header */}
           <div style={{ borderBottom: '2px solid var(--border-light)', paddingBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ backgroundColor: 'var(--brand-teal)', color: '#FFFFFF', padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
-                <Shield size={24} />
-              </div>
+              <img
+                src="/favicon.png"
+                alt="CyberSaarthi Logo"
+                style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+              />
               <div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-teal)', letterSpacing: '-0.01em' }}>
                   CYBERSAARTHI

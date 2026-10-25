@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, User, Phone, Building, BadgeCheck, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, User, Phone, Building, BadgeCheck, AlertCircle, ArrowRight, KeyRound } from 'lucide-react';
 import { provisionOfficer, setAuthSession } from '../services/api';
 
 export const OfficerRegisterPage: React.FC = () => {
@@ -68,21 +68,18 @@ export const OfficerRegisterPage: React.FC = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: '#1E40AF',
-              color: '#FFFFFF',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '0.75rem'
+              width: '54px',
+              height: '54px',
+              borderRadius: 'var(--radius-lg)',
+              objectFit: 'contain',
+              marginBottom: '0.75rem',
+              boxShadow: 'var(--shadow-sm)'
             }}
-          >
-            <ShieldCheck size={26} />
-          </div>
+          />
           <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
             Officer Account Onboarding & Provisioning
           </h1>

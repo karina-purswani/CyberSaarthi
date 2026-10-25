@@ -484,8 +484,15 @@ def get_complaint_details(
             (c_id,)
         ).fetchall()
 
-        # If findings have not been generated yet, compute and persist them
-        if not findings_rows:
+        # If findings have not been generated yet, or if fresh extracted fields exist, re-evaluate and persist them
+        has_new_extractions = False
+        if evidence:
+            has_amt_extracted = any(r["field_name"] == "amount" and r["normalized_value"] for r in extracted)
+            has_amt_in_findings = any(r["field_name"] == "transaction_amount" and r["evidence_value"] for r in findings_rows)
+            if has_amt_extracted and not has_amt_in_findings:
+                has_new_extractions = True
+
+        if not findings_rows or has_new_extractions:
             evaluate_complaint_consistency(conn, c_id)
             conn.commit()
             findings_rows = conn.execute(

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, CheckCircle2, AlertCircle, LogOut, User as UserIcon, LayoutDashboard, PlusCircle, ListFilter, Network, FileText, UserCheck } from 'lucide-react';
+import { CheckCircle2, AlertCircle, LogOut, User as UserIcon, LayoutDashboard, PlusCircle, ListFilter, Network, FileText, UserCheck, ShieldCheck } from 'lucide-react';
 import { fetchHealth, getCurrentUser, logoutUser } from '../services/api';
 import type { User } from '../types';
 
@@ -58,21 +58,19 @@ export const Header: React.FC = () => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
-          <div
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', textDecoration: 'none' }}>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
             style={{
-              backgroundColor: 'var(--brand-teal)',
-              color: '#FFFFFF',
-              width: '32px',
-              height: '32px',
+              width: '34px',
+              height: '34px',
               borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              objectFit: 'contain',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'block'
             }}
-          >
-            <Shield size={18} />
-          </div>
+          />
           <div>
             <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--brand-teal)', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
               CyberSaarthi
@@ -219,6 +217,24 @@ export const Header: React.FC = () => {
               >
                 <ListFilter size={14} />
                 My Submissions
+              </Link>
+              <Link
+                to="/citizen/guide"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  color: location.pathname === '/citizen/guide' ? 'var(--brand-teal)' : 'var(--text-secondary)',
+                  backgroundColor: location.pathname === '/citizen/guide' ? 'var(--brand-subtle)' : 'transparent'
+                }}
+              >
+                <ShieldCheck size={14} />
+                Prevention Guide
               </Link>
             </>
           )}

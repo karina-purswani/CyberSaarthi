@@ -25,6 +25,14 @@ class FieldCorrectionRequest(BaseModel):
     corrected_value: str
     reason: str
 
+class EmailReportRequest(BaseModel):
+    recipient_email: Optional[str] = None
+
+class EmailConfigResponse(BaseModel):
+    smtp_configured: bool
+    test_recipient_email: str
+    email_from: str
+
 class ComplaintSummaryItem(BaseModel):
     id: str
     reference_id: str

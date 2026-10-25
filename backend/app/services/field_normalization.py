@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 def normalize_amount(raw_val: Optional[object]) -> Tuple[Optional[Decimal], Optional[str]]:
     """
     Normalizes monetary values.
-    Handles '₹ 25,000.00', 'Rs. 25000', '25000/-', 'INR 25,000', floats, and ints.
+    Handles '₹ 25,000.00', 'Rs. 25000', 'R13,000', '25000/-', 'INR 25,000', floats, and ints.
     Returns (Decimal representation, normalized string '25000.00').
     """
     if raw_val is None:
@@ -16,8 +16,8 @@ def normalize_amount(raw_val: Optional[object]) -> Tuple[Optional[Decimal], Opti
     if not val_str:
         return None, None
     
-    # Strip currency symbols, slashes, whitespace
-    cleaned = re.sub(r'[₹\$,]|(?:INR|Rs\.?|/-)', '', val_str, flags=re.IGNORECASE).strip()
+    # Strip currency symbols, OCR artifact prefixes ('R', 'r' for ₹), slashes, commas, whitespace
+    cleaned = re.sub(r'^[₹\$,rR\s]+|[₹\$,]|(?:INR|Rs\.?|Re\.?|/-)', '', val_str, flags=re.IGNORECASE).strip()
     
     # Match standard number pattern: 1234 or 1234.56
     match = re.search(r'(\d+(?:\.\d{1,2})?)', cleaned)
@@ -41,7 +41,9 @@ COMMON_WEBMAIL = {
 def normalize_upi_id(raw_val: Optional[str]) -> Optional[str]:
     """
     Normalizes UPI handles:
-    - Trims whitespace
+    - Trims whitespace and quotes
+    - Strips leading masked prefixes like '...' or '***'
+    - Strips OCR joined suffixes like 'onPhonePe', 'onGooglePay', 'onGPay'
     - Lowercases
     - Filters common personal email domains
     - Validates presence of '@' and alphanumerics on both sides
@@ -52,15 +54,19 @@ def normalize_upi_id(raw_val: Optional[str]) -> Optional[str]:
     # Check for basic UPI structure: username@psp
     if '@' in val:
         # Remove any surrounding punctuation or quotes
-        val = re.sub(r'^[\'\"]|[\'\"]$', '', val)
+        val = re.sub(r"^['\"\s]+|['\"\s]+$", '', val)
         parts = val.split('@')
         if len(parts) == 2 and parts[0] and parts[1]:
             domain = parts[1].strip()
             if domain in COMMON_WEBMAIL:
                 return None
-            # Clean username and psp handle
-            user = re.sub(r'[^a-z0-9._-]', '', parts[0])
+            # Clean username: strip leading/trailing masking dots, stars, dashes
+            user = re.sub(r'^[._\-\*]+|[._\-\*]+$', '', parts[0])
+            user = re.sub(r'[^a-z0-9._-]', '', user)
+            
+            # Clean PSP handle: strip UI suffixes like onPhonePe, onGooglePay
             psp = re.sub(r'[^a-z0-9]', '', parts[1])
+            psp = re.sub(r'on(?:phonepe|googlepay|gpay|paytm|bhim|axis|icici|sbi|hdfc)$', '', psp)
             if user and psp:
                 return f"{user}@{psp}"
     return None

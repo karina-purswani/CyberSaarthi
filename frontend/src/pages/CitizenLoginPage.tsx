@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { loginUser } from '../services/api';
 
 export const CitizenLoginPage: React.FC = () => {
@@ -36,19 +36,18 @@ export const CitizenLoginPage: React.FC = () => {
         boxShadow: 'var(--shadow-md)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--brand-teal)',
-            color: '#FFFFFF',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '0.75rem'
-          }}>
-            <Shield size={24} />
-          </div>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: 'var(--radius-lg)',
+              objectFit: 'contain',
+              marginBottom: '0.75rem',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          />
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
             Citizen Portal Sign In
           </h1>

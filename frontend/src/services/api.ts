@@ -415,3 +415,47 @@ export async function downloadReportPdf(complaintId: string): Promise<Blob> {
   }
   return res.blob();
 }
+
+export async function fetchEmailConfig(): Promise<{
+  smtp_configured: boolean;
+  test_recipient_email: string;
+  email_from: string;
+}> {
+  const res = await fetch(`${API_BASE}/reports/email-config`, {
+    headers: authHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to load email service configuration');
+  return res.json();
+}
+
+export async function emailComplaintReport(
+  complaintId: string,
+  recipientEmail?: string
+): Promise<{
+  success: boolean;
+  status: string;
+  mode: string;
+  recipient: string;
+  reference_id: string;
+  message: string;
+  pdf_filename: string;
+  pdf_size_bytes: number;
+  dispatched_at: string;
+}> {
+  const res = await fetch(`${API_BASE}/reports/${encodeURIComponent(complaintId)}/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders()
+    },
+    body: JSON.stringify({ recipient_email: recipientEmail || null })
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ detail: 'Report email dispatch failed' }));
+    throw new Error(errorData.detail || 'Failed to dispatch report copy by email');
+  }
+
+  return res.json();
+}
+

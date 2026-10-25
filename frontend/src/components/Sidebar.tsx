@@ -28,8 +28,20 @@ export const Sidebar: React.FC = () => {
       }}
     >
       <div>
-        <div style={{ padding: '0 0.5rem 0.75rem 0.5rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-          Officer Console
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.5rem 0.85rem 0.5rem', borderBottom: '1px solid var(--border-light)', marginBottom: '0.75rem' }}>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
+            style={{ width: '28px', height: '28px', borderRadius: 'var(--radius-sm)', objectFit: 'contain' }}
+          />
+          <div>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--brand-teal)', lineHeight: 1.1 }}>
+              CyberSaarthi
+            </div>
+            <div style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+              Officer Console
+            </div>
+          </div>
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           {navItems.map((item) => (

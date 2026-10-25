@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusCircle, FileText, ArrowRight } from 'lucide-react';
+import { PlusCircle, FileText, ArrowRight, ShieldCheck, PhoneCall } from 'lucide-react';
 import { fetchCitizenMetrics, getCurrentUser } from '../services/api';
 import type { CitizenMetrics } from '../types';
 
@@ -51,13 +51,29 @@ export const CitizenDashboardPage: React.FC = () => {
         padding: '1.5rem',
         boxShadow: 'var(--shadow-sm)'
       }}>
-        <div>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-            Welcome, {user?.full_name || 'Citizen'}
-          </h1>
-          <p style={{ fontSize: '0.84375rem', color: 'var(--text-secondary)' }}>
-            Citizen Case Management &amp; Evidence Intelligence Dashboard
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: 'var(--radius-md)',
+              objectFit: 'contain',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-light)',
+              backgroundColor: '#FFFFFF',
+              padding: '2px'
+            }}
+          />
+          <div>
+            <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+              Welcome, {user?.full_name || 'Citizen'}
+            </h1>
+            <p style={{ fontSize: '0.84375rem', color: 'var(--text-secondary)' }}>
+              Citizen Case Management &amp; Evidence Intelligence Dashboard
+            </p>
+          </div>
         </div>
 
         <Link
@@ -126,6 +142,87 @@ export const CitizenDashboardPage: React.FC = () => {
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }}>
             ₹{metrics.total_reported_loss.toLocaleString('en-IN')}
           </div>
+        </div>
+      </div>
+
+      {/* Cyber Safety Guide Card */}
+      <div
+        style={{
+          backgroundColor: 'var(--brand-subtle)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            backgroundColor: 'var(--brand-teal)',
+            color: '#FFFFFF',
+            padding: '0.6rem',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--brand-teal)', marginBottom: '0.2rem' }}>
+              Citizen Cybercrime Prevention &amp; Safety Guide
+            </h2>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', maxWidth: '580px', lineHeight: 1.45 }}>
+              Protect yourself from UPI collect frauds, deceptive QR codes, phishing links, and remote-access traps.
+              Review actionable safety checklists and emergency Golden Hour steps.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <a
+            href="tel:1930"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: '#FFFFFF',
+              color: '#DC2626',
+              border: '1px solid #FECACA',
+              padding: '0.5rem 0.85rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              textDecoration: 'none'
+            }}
+          >
+            <PhoneCall size={13} />
+            <span>Emergency 1930</span>
+          </a>
+
+          <Link
+            to="/citizen/guide"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: 'var(--brand-teal)',
+              color: '#FFFFFF',
+              padding: '0.55rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              textDecoration: 'none'
+            }}
+          >
+            <span>Explore Safety Guide</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
       </div>
 

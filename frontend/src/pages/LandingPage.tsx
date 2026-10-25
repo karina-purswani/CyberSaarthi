@@ -7,6 +7,19 @@ export const LandingPage: React.FC = () => {
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem 1.5rem 4rem' }}>
       {/* Hero Section */}
       <section style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: 'var(--radius-lg)',
+              objectFit: 'contain',
+              boxShadow: '0 4px 12px rgba(13, 148, 136, 0.15)'
+            }}
+          />
+        </div>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',

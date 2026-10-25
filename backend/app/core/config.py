@@ -6,6 +6,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 STORAGE_DIR = BASE_DIR / "storage" / "evidence"
 DATABASE_PATH = BASE_DIR / "cybersaarthi.db"
 
+# Automatically parse .env file if present in BASE_DIR, frontend, backend, or cwd
+def _load_env_file():
+    env_paths = [
+        BASE_DIR / ".env",
+        BASE_DIR / "frontend" / ".env",
+        BASE_DIR / "backend" / ".env",
+        Path.cwd() / ".env"
+    ]
+    for path in env_paths:
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#") or "=" not in line:
+                            continue
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        # Allow non-empty values to override previously empty variables
+                        if k not in os.environ or not os.environ[k]:
+                            os.environ[k] = v
+            except Exception:
+                pass
+
+_load_env_file()
+
 class Settings(BaseModel):
     app_name: str = "CyberSaarthi Cyber-Fraud Evidence Intelligence Platform"
     environment: str = os.getenv("ENVIRONMENT", "development")
@@ -32,6 +59,17 @@ class Settings(BaseModel):
         "http://127.0.0.1:3000",
         "*"
     ]
+    
+    # Email / SMTP Configuration
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = int(os.getenv("SMTP_PORT", 587))
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    smtp_tls: bool = os.getenv("SMTP_TLS", "true").lower() == "true"
+    smtp_ssl: bool = os.getenv("SMTP_SSL", "false").lower() == "true"
+    email_from: str = os.getenv("EMAIL_FROM", "CyberSaarthi Platform <no-reply@cybersaarthi.local>")
+    test_recipient_email: str = os.getenv("CYBERSAARTHI_TEST_EMAIL", "purswani2276@gmail.com")
+    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
 
 settings = Settings()
 

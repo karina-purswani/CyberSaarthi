@@ -49,14 +49,30 @@ export const OverviewPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
       {/* Page Title & Context */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-            Operational Triage & Intelligence Overview
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
-            Live metrics aggregated from stored complaints, OCR evidence extractions, and indicator linking rules.
-          </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <img
+            src="/favicon.png"
+            alt="CyberSaarthi Logo"
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: 'var(--radius-md)',
+              objectFit: 'contain',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--border-light)',
+              backgroundColor: '#FFFFFF',
+              padding: '2px'
+            }}
+          />
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              Operational Triage & Intelligence Overview
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.2rem' }}>
+              Live metrics aggregated from stored complaints, OCR evidence extractions, and indicator linking rules.
+            </p>
+          </div>
         </div>
 
         <Link

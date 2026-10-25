@@ -16,6 +16,7 @@ import { CitizenNewComplaintPage } from './pages/CitizenNewComplaintPage';
 import { CitizenComplaintsPage } from './pages/CitizenComplaintsPage';
 import { CitizenCaseDetailPage } from './pages/CitizenCaseDetailPage';
 import { CitizenProfilePage } from './pages/CitizenProfilePage';
+import { CitizenPreventionGuidePage } from './pages/CitizenPreventionGuidePage';
 
 // Officer Workspace Pages
 import { OverviewPage } from './pages/OverviewPage';
@@ -75,6 +76,7 @@ export function App() {
           <Route path="new" element={<CitizenNewComplaintPage />} />
           <Route path="complaints" element={<CitizenComplaintsPage />} />
           <Route path="complaints/:id" element={<CitizenCaseDetailPage />} />
+          <Route path="guide" element={<CitizenPreventionGuidePage />} />
           <Route path="profile" element={<CitizenProfilePage />} />
         </Route>
 

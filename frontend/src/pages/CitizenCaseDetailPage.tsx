@@ -2,9 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  ExternalLink
+  ExternalLink,
+  Mail,
+  Download,
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-import { fetchComplaintDetail, getEvidenceFileUrl } from '../services/api';
+import { 
+  fetchComplaintDetail, 
+  getEvidenceFileUrl, 
+  fetchEmailConfig, 
+  emailComplaintReport, 
+  downloadReportPdf 
+} from '../services/api';
 import type { ComplaintDetail } from '../types';
 import { Badge } from '../components/Badge';
 import { DiscrepancyBadge } from '../components/DiscrepancyBadge';
@@ -14,6 +25,33 @@ export const CitizenCaseDetailPage: React.FC = () => {
   const [data, setData] = useState<ComplaintDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Email dossier state
+  const [emailConfig, setEmailConfig] = useState<{
+    smtp_configured: boolean;
+    test_recipient_email: string;
+    email_from: string;
+  } | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState<{
+    message: string;
+    recipient: string;
+    mode: string;
+    dispatched_at: string;
+  } | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [customEmail, setCustomEmail] = useState('');
+  const [showCustomEmailInput, setShowCustomEmailInput] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  useEffect(() => {
+    fetchEmailConfig().then(cfg => {
+      setEmailConfig(cfg);
+      if (cfg?.test_recipient_email) {
+        setCustomEmail(cfg.test_recipient_email);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -70,6 +108,47 @@ export const CitizenCaseDetailPage: React.FC = () => {
   };
 
   const currentStage = getStageIndex(complaint.status);
+
+  const handleDownloadPdf = async () => {
+    if (!complaint) return;
+    setDownloadingPdf(true);
+    try {
+      const blob = await downloadReportPdf(complaint.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cybersaarthi_dossier_${complaint.reference_id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Failed to download PDF dossier: ' + err.message);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleSendEmail = async (overrideEmail?: string) => {
+    if (!complaint) return;
+    setSendingEmail(true);
+    setEmailError(null);
+    setEmailSuccess(null);
+    try {
+      const target = overrideEmail || (showCustomEmailInput && customEmail.trim() ? customEmail.trim() : undefined);
+      const res = await emailComplaintReport(complaint.id, target);
+      setEmailSuccess({
+        message: res.message,
+        recipient: res.recipient,
+        mode: res.mode,
+        dispatched_at: res.dispatched_at
+      });
+    } catch (err: any) {
+      setEmailError(err.message || 'Failed to dispatch report email.');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const configuredTestEmail = emailConfig?.test_recipient_email || 'purswani2276@gmail.com';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3rem' }}>
@@ -139,6 +218,239 @@ export const CitizenCaseDetailPage: React.FC = () => {
             Category: {complaint.incident_type}
           </div>
         </div>
+      </div>
+
+      {/* Report Dossier & Email Delivery Action Card */}
+      <div
+        style={{
+          backgroundColor: 'var(--surface-primary)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.5rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Investigation Dossier &amp; Report Actions
+            </h2>
+            <p style={{ fontSize: '0.78125rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Download or email the authenticated CyberSaarthi report dossier with Section 65B advisory and extracted tokens.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Download PDF Button */}
+            <button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-strong)',
+                padding: '0.55rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                cursor: downloadingPdf ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {downloadingPdf ? <Loader2 size={14} className="spin" /> : <Download size={14} />}
+              <span>{downloadingPdf ? 'Exporting PDF...' : 'Download PDF Dossier'}</span>
+            </button>
+
+            {/* Email Report Button */}
+            <button
+              onClick={() => handleSendEmail()}
+              disabled={sendingEmail}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                backgroundColor: 'var(--brand-teal)',
+                color: '#FFFFFF',
+                padding: '0.55rem 1.15rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                cursor: sendingEmail ? 'not-allowed' : 'pointer',
+                boxShadow: 'var(--shadow-sm)',
+                opacity: sendingEmail ? 0.7 : 1
+              }}
+            >
+              {sendingEmail ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}
+              <span>
+                {sendingEmail ? 'Dispatching...' : `Email Report to Demonstration Inbox`}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Demonstration Recipient Note */}
+        <div style={{
+          backgroundColor: 'var(--surface-subtle)',
+          border: '1px solid var(--border-light)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          fontSize: '0.78125rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Configured Demonstration Recipient:</span>
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              color: 'var(--brand-teal)',
+              backgroundColor: '#FFFFFF',
+              padding: '0.15rem 0.5rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-light)'
+            }}>
+              {configuredTestEmail}
+            </span>
+            <span style={{
+              fontSize: '0.6875rem',
+              padding: '0.1rem 0.35rem',
+              borderRadius: '2px',
+              backgroundColor: emailConfig?.smtp_configured ? '#ECFDF5' : '#FFFBEB',
+              color: emailConfig?.smtp_configured ? '#065F46' : '#92400E',
+              border: `1px solid ${emailConfig?.smtp_configured ? '#A7F3D0' : '#FDE68A'}`,
+              fontWeight: 600
+            }}>
+              {emailConfig?.smtp_configured ? 'SMTP Active' : 'Simulation Mode'}
+            </span>
+          </div>
+
+          <button
+            onClick={() => setShowCustomEmailInput(!showCustomEmailInput)}
+            style={{
+              color: 'var(--brand-teal)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            {showCustomEmailInput ? 'Hide Custom Recipient' : 'Change Recipient'}
+          </button>
+        </div>
+
+        {/* Custom Recipient Input Bar */}
+        {showCustomEmailInput && (
+          <div style={{
+            marginTop: '0.75rem',
+            padding: '0.75rem',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid var(--border-light)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+            flexWrap: 'wrap'
+          }}>
+            <label style={{ fontSize: '0.78125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Recipient Email:
+            </label>
+            <input
+              type="email"
+              value={customEmail}
+              onChange={(e) => setCustomEmail(e.target.value)}
+              placeholder="e.g. your-inbox@example.com"
+              style={{
+                flex: 1,
+                minWidth: '220px',
+                fontSize: '0.8125rem',
+                padding: '0.4rem 0.65rem'
+              }}
+            />
+            <button
+              onClick={() => handleSendEmail(customEmail.trim())}
+              disabled={sendingEmail || !customEmail.trim()}
+              style={{
+                backgroundColor: 'var(--brand-teal)',
+                color: '#FFFFFF',
+                padding: '0.45rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.78125rem',
+                fontWeight: 600,
+                cursor: (sendingEmail || !customEmail.trim()) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Send to this Address
+            </button>
+          </div>
+        )}
+
+        {/* Success Feedback Alert */}
+        {emailSuccess && (
+          <div style={{
+            marginTop: '1rem',
+            backgroundColor: '#ECFDF5',
+            border: '1px solid #A7F3D0',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.65rem'
+          }}>
+            <CheckCircle2 size={18} color="#059669" style={{ marginTop: '0.1rem', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#065F46', marginBottom: '0.2rem' }}>
+                Report Dossier Successfully Dispatched ({emailSuccess.mode.toUpperCase()})
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#047857', lineHeight: 1.45 }}>
+                {emailSuccess.message}
+              </div>
+              <div style={{ fontSize: '0.71875rem', color: '#065F46', marginTop: '0.35rem', fontStyle: 'italic' }}>
+                Note: This email is an informational copy and does NOT constitute confirmation of police action or fund recovery.
+              </div>
+            </div>
+            <button
+              onClick={() => setEmailSuccess(null)}
+              style={{ fontSize: '0.75rem', color: '#047857', cursor: 'pointer', padding: '0.1rem 0.3rem' }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Error Feedback Alert */}
+        {emailError && (
+          <div style={{
+            marginTop: '1rem',
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.65rem'
+          }}>
+            <AlertCircle size={18} color="#DC2626" style={{ marginTop: '0.1rem', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#991B1B', marginBottom: '0.2rem' }}>
+                Email Dispatch Failed
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#B91C1C', lineHeight: 1.45 }}>
+                {emailError}
+              </div>
+            </div>
+            <button
+              onClick={() => setEmailError(null)}
+              style={{ fontSize: '0.75rem', color: '#991B1B', cursor: 'pointer', padding: '0.1rem 0.3rem' }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Visual Tracking Progress Stepper */}
@@ -402,33 +714,46 @@ export const CitizenCaseDetailPage: React.FC = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {verification_findings.map((vf) => (
-                  <div
-                    key={vf.id}
-                    style={{
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      backgroundColor: 'var(--surface-subtle)',
-                      border: '1px solid var(--border-light)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {vf.field_name.replace(/_/g, ' ').toUpperCase()}
+                {verification_findings.map((vf) => {
+                  const isAmount = vf.field_name === 'transaction_amount';
+                  const formattedReported = isAmount && vf.complaint_value && !isNaN(Number(vf.complaint_value))
+                    ? `₹${Number(vf.complaint_value).toLocaleString('en-IN')}`
+                    : (vf.complaint_value || 'None');
+
+                  return (
+                    <div
+                      key={vf.id}
+                      style={{
+                        padding: '0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--surface-subtle)',
+                        border: '1px solid var(--border-light)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem'
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
+                          {vf.field_name.replace(/_/g, ' ').toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: '0.71875rem', color: 'var(--text-secondary)' }}>
+                          Reported: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{formattedReported}</span>
+                        </div>
+                        <div style={{ fontSize: '0.71875rem', color: 'var(--text-secondary)' }}>
+                          Receipt: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{vf.evidence_value || 'Not detected'}</span>
+                        </div>
+                        {vf.reason && (
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.35 }}>
+                            {vf.reason}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.71875rem', color: 'var(--text-secondary)' }}>
-                        Reported: <span style={{ fontFamily: 'var(--font-mono)' }}>{vf.complaint_value || 'None'}</span>
-                      </div>
-                      <div style={{ fontSize: '0.71875rem', color: 'var(--text-secondary)' }}>
-                        Receipt: <span style={{ fontFamily: 'var(--font-mono)' }}>{vf.evidence_value || 'Not detected'}</span>
-                      </div>
+                      <DiscrepancyBadge result={vf.result} displayStatus={vf.display_status} />
                     </div>
-                    <DiscrepancyBadge result={vf.result} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

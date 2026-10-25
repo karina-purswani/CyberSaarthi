@@ -99,13 +99,17 @@ def verify_amount(
         else:
             dec_ev, norm_ev = normalize_amount(raw_ev)
 
+    display_ev = raw_ev
+    if display_ev and (display_ev.startswith('R') or display_ev.startswith('r')) and len(display_ev) > 1 and display_ev[1].isdigit():
+        display_ev = '₹' + display_ev[1:]
+
     if dec_comp is None and dec_ev is None:
         return VerificationFinding(
             complaint_id=complaint_id,
             evidence_id=evidence_id,
             field_name="transaction_amount",
             complaint_value=raw_comp,
-            evidence_value=raw_ev,
+            evidence_value=display_ev,
             normalized_complaint_value=None,
             normalized_evidence_value=None,
             result=VerificationResultType.UNABLE_TO_VERIFY,
@@ -119,7 +123,7 @@ def verify_amount(
             evidence_id=evidence_id,
             field_name="transaction_amount",
             complaint_value=raw_comp,
-            evidence_value=raw_ev,
+            evidence_value=display_ev,
             normalized_complaint_value=None,
             normalized_evidence_value=norm_ev,
             result=VerificationResultType.MISSING_IN_COMPLAINT,
@@ -133,7 +137,7 @@ def verify_amount(
             evidence_id=evidence_id,
             field_name="transaction_amount",
             complaint_value=raw_comp,
-            evidence_value=raw_ev,
+            evidence_value=display_ev,
             normalized_complaint_value=norm_comp,
             normalized_evidence_value=None,
             result=VerificationResultType.MISSING_IN_EVIDENCE,
@@ -148,7 +152,7 @@ def verify_amount(
             evidence_id=evidence_id,
             field_name="transaction_amount",
             complaint_value=raw_comp,
-            evidence_value=raw_ev,
+            evidence_value=display_ev,
             normalized_complaint_value=norm_comp,
             normalized_evidence_value=norm_ev,
             result=VerificationResultType.MATCH,
@@ -162,7 +166,7 @@ def verify_amount(
             evidence_id=evidence_id,
             field_name="transaction_amount",
             complaint_value=raw_comp,
-            evidence_value=raw_ev,
+            evidence_value=display_ev,
             normalized_complaint_value=norm_comp,
             normalized_evidence_value=norm_ev,
             result=VerificationResultType.MISMATCH,
@@ -260,7 +264,7 @@ def verify_upi_id(
     extracted_upi: Optional[Dict[str, Any]]
 ) -> VerificationFinding:
     raw_comp = reported_upi
-    raw_ev = extracted_upi.get("raw") if extracted_upi else None
+    raw_ev = (extracted_upi.get("normalized") or extracted_upi.get("raw")) if extracted_upi else None
     
     norm_comp = normalize_upi_id(reported_upi)
     norm_ev = extracted_upi.get("normalized") if extracted_upi else None

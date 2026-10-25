@@ -81,16 +81,48 @@ def extract_structured_fields_from_text(raw_text: str) -> Dict[str, Any]:
             break
 
     # 2. Extract Amount
-    # Common formats: ₹ 25,000, Rs. 25000.00, Paid ₹2,500, Amount: 1,500.00
-    amount_matches = list(re.finditer(
-        r'(?:Paid\s*to|Paid|Transferred|Payment\s*of|Amount|₹|Rs\.?|INR)\s*[:=.-]?\s*(?:[₹\$,B\s]|INR|Rs\.?)*([0-9,]+(?:\.[0-9]{1,2})?)',
-        raw_text,
-        re.IGNORECASE
-    ))
-    
+    # Common formats:
+    # - Explicit ₹13,000, ₹ 13,000.00, Rs. 13000, INR 13,000
+    # - R13,000, r13,000 (RapidOCR/Tesseract misreading ₹ as R/r)
+    # - Paid ₹13,000, Amount: 13,000, Transferred 13,000, Debited 13,000
+    # - Dedicated lines: 'R13,000' or '₹13,000'
+    # - Standalone comma-formatted Indian currency numbers: 13,000 or 1,50,000
     found_amount = None
-    if amount_matches:
-        for m in amount_matches:
+
+    # Tier 1: Action words or explicit currency symbols including OCR 'R'/'r' for ₹
+    t1_pattern = r'(?:(?:\b(?:Paid(?:\s*to)?|Transferred|Payment(?:\s*of)?|Amount|Debited|Sent|Total|Received)\b\s*[:=.-]?)?\s*(?:[₹\$]|INR\b|Rs\.?|Re\.?|(?:\b|^)[Rr](?=[0-9]))\s*([0-9,]+(?:\.[0-9]{1,2})?))'
+    for m in re.finditer(t1_pattern, raw_text, re.IGNORECASE):
+        raw_matched = m.group(1).strip()
+        dec, norm_str = normalize_amount(raw_matched)
+        if dec and dec > 0:
+            found_amount = {
+                "raw": m.group(0).strip(),
+                "normalized": norm_str,
+                "value": float(dec),
+                "context": m.group(0).strip()
+            }
+            break
+
+    # Tier 2: Lines dedicated to an amount (e.g. 'R13,000' or '₹13,000' or 'Rs 13,000')
+    if not found_amount:
+        for line in raw_text.splitlines():
+            line_str = line.strip()
+            line_m = re.match(r'^(?:[₹\$]|INR|Rs\.?|Re\.?|[Rr])\s*([0-9,]+(?:\.[0-9]{1,2})?)$', line_str, re.IGNORECASE)
+            if line_m:
+                dec, norm_str = normalize_amount(line_m.group(1))
+                if dec and dec > 0:
+                    found_amount = {
+                        "raw": line_str,
+                        "normalized": norm_str,
+                        "value": float(dec),
+                        "context": line_str
+                    }
+                    break
+
+    # Tier 3: Action keyword followed by amount number
+    if not found_amount:
+        t3_pattern = r'\b(?:Paid(?:\s*to)?|Transferred|Payment(?:\s*of)?|Amount|Debited|Sent|Total)\s*[:=.-]?\s*([0-9,]+(?:\.[0-9]{1,2})?)\b'
+        for m in re.finditer(t3_pattern, raw_text, re.IGNORECASE):
             raw_matched = m.group(1).strip()
             dec, norm_str = normalize_amount(raw_matched)
             if dec and dec > 0:
@@ -101,27 +133,27 @@ def extract_structured_fields_from_text(raw_text: str) -> Dict[str, Any]:
                     "context": m.group(0).strip()
                 }
                 break
-    
+
+    # Tier 4: Standalone comma-formatted number (e.g. 13,000 or 1,50,000)
     if not found_amount:
-        # Fallback standalone currency symbols with digits
-        standalone = re.search(r'[₹]\s*([0-9,]+(?:\.[0-9]{1,2})?)', raw_text)
-        if standalone:
-            dec, norm_str = normalize_amount(standalone.group(1))
+        for m in re.finditer(r'(?:^|\s)([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?)(?:\s|$)', raw_text):
+            raw_matched = m.group(1).strip()
+            dec, norm_str = normalize_amount(raw_matched)
             if dec and dec > 0:
                 found_amount = {
-                    "raw": standalone.group(0),
+                    "raw": raw_matched,
                     "normalized": norm_str,
                     "value": float(dec),
-                    "context": standalone.group(0)
+                    "context": f"Standalone formatted amount: {raw_matched}"
                 }
-                
+                break
+
     fields["amount"] = found_amount
 
     # 3. Extract UPI ID
-    # Pattern: [a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}
-    # Known banking handles: @oksbi, @okaxis, @okhdfcbank, @okicici, @ybl, @ibl, @axl, @paytm, @apl, @upi
+    # Pattern: [a-zA-Z0-9._\-*]{2,}@[a-zA-Z0-9._\-]{2,}
     upi_matches = list(re.finditer(
-        r'\b([a-zA-Z0-9._-]{3,}@(?!gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)[a-zA-Z0-9]{2,})\b',
+        r'([a-zA-Z0-9._\-*]{2,}@(?!gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)[a-zA-Z0-9._\-]{2,})',
         raw_text,
         re.IGNORECASE
     ))
